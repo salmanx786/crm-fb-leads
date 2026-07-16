@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}MC College — Medical Education Excellence{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}MC College offers accredited medical and allied-health programs with modern facilities and experienced faculty. Apply for admission today.{% endblock %}" />
+
+  <!-- Tailwind via CDN: no build step, ideal for shared hosting. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: "#eef7f4", 100: "#d6ece5", 200: "#aed9cb",
+              300: "#7dc0ac", 400: "#4fa48b", 500: "#2f8a72",
+              600: "#206e5b", 700: "#1b584a", 800: "#17463c", 900: "#123830",
+            },
+          },
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="font-sans text-slate-800 antialiased bg-white">
+  {% block content %}{% endblock %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

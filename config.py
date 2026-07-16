@@ -60,8 +60,17 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
 
 
+class TestingConfig(Config):
+    TESTING = True
+    # In-memory SQLite keeps tests fast and isolated from MySQL.
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_ENGINE_OPTIONS = {}  # pool options above don't apply to SQLite
+    WTF_CSRF_ENABLED = True  # keep CSRF on so tests exercise the real token flow
+
+
 config = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
+    "testing": TestingConfig,
     "default": DevelopmentConfig,
 }

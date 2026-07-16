@@ -12,10 +12,10 @@ class User(UserMixin, BaseModel):
 
     __tablename__ = "users"
 
-    name: str = db.Column(db.String(120), nullable=False)
-    email: str = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash: str = db.Column(db.String(255), nullable=False)
-    is_active_flag: bool = db.Column("is_active", db.Boolean, default=True, nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    is_active_flag = db.Column("is_active", db.Boolean, default=True, nullable=False)
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)

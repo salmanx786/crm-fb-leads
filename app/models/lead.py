@@ -8,24 +8,24 @@ class Lead(BaseModel):
     __tablename__ = "leads"
 
     # Applicant-provided fields
-    name: str = db.Column(db.String(120), nullable=False)
-    phone: str = db.Column(db.String(20), nullable=False)
-    email: str = db.Column(db.String(255), nullable=True)
-    city: str = db.Column(db.String(120), nullable=True)
-    course: str = db.Column(db.String(120), nullable=True)
-    message: str = db.Column(db.Text, nullable=True)
+    name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    city = db.Column(db.String(120), nullable=True)
+    course = db.Column(db.String(120), nullable=True)
+    message = db.Column(db.Text, nullable=True)
 
     # Attribution / tracking
-    utm_source: str = db.Column(db.String(120), nullable=True)
-    utm_medium: str = db.Column(db.String(120), nullable=True)
-    utm_campaign: str = db.Column(db.String(120), nullable=True)
-    referrer: str = db.Column(db.String(512), nullable=True)
-    ip_address: str = db.Column(db.String(45), nullable=True)  # supports IPv6
-    user_agent: str = db.Column(db.String(512), nullable=True)
+    utm_source = db.Column(db.String(120), nullable=True)
+    utm_medium = db.Column(db.String(120), nullable=True)
+    utm_campaign = db.Column(db.String(120), nullable=True)
+    referrer = db.Column(db.String(512), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)  # supports IPv6
+    user_agent = db.Column(db.String(512), nullable=True)
 
     # Management. Stored as a plain string; valid values live in
     # app.constants.LEAD_STATUSES so we can add stages without a migration.
-    status: str = db.Column(db.String(32), default="New", nullable=False)
+    status = db.Column(db.String(32), default="New", nullable=False)
 
     # Indexes for the columns the dashboard filters and sorts on. The
     # composite (status, created_at) index backs the common "leads in a given
@@ -62,13 +62,13 @@ class LeadNote(BaseModel):
 
     __tablename__ = "lead_notes"
 
-    lead_id: int = db.Column(
+    lead_id = db.Column(
         db.Integer, db.ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    author_id: int = db.Column(
+    author_id = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    body: str = db.Column(db.Text, nullable=False)
+    body = db.Column(db.Text, nullable=False)
 
     lead = db.relationship("Lead", back_populates="notes")
     author = db.relationship("User")
@@ -86,16 +86,16 @@ class TimelineEvent(BaseModel):
 
     __tablename__ = "timeline_events"
 
-    lead_id: int = db.Column(
+    lead_id = db.Column(
         db.Integer, db.ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    actor_id: int = db.Column(
+    actor_id = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     # Machine-readable kind, e.g. "created", "status_changed", "note_added".
-    event_type: str = db.Column(db.String(50), nullable=False)
+    event_type = db.Column(db.String(50), nullable=False)
     # Human-readable summary rendered in the lead detail timeline.
-    description: str = db.Column(db.String(512), nullable=False)
+    description = db.Column(db.String(512), nullable=False)
 
     lead = db.relationship("Lead", back_populates="timeline")
     actor = db.relationship("User")

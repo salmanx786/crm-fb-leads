@@ -3,6 +3,8 @@
 Isolated here so the lead service stays focused on business logic and does
 not need to know how Flask exposes headers, proxies, or query strings.
 """
+from __future__ import annotations  # 3.9-safe PEP 604 unions in annotations
+
 from typing import Any
 
 

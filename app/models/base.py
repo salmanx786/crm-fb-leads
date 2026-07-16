@@ -12,10 +12,13 @@ from app.extensions import db
 class BaseModel(db.Model):
     __abstract__ = True
 
-    id: int = db.Column(db.Integer, primary_key=True)
-    created_at: datetime = db.Column(
+    # Legacy declarative style (db.Column assignment). We deliberately avoid
+    # annotating these attributes: SQLAlchemy 2.0 treats any annotated class
+    # attribute as a Mapped[] declaration, which conflicts with this style.
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(
         db.DateTime, default=datetime.utcnow, nullable=False, index=True
     )
-    updated_at: datetime = db.Column(
+    updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
