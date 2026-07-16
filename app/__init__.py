@@ -25,6 +25,7 @@ def create_app(config_name: str | None = None) -> Flask:
     _init_extensions(app)
     _register_blueprints(app)
     _register_context_processors(app)
+    _register_cli(app)
 
     # Ensure models are imported so SQLAlchemy/Migrate see them.
     from app import models  # noqa: F401
@@ -42,6 +43,13 @@ def _register_context_processors(app: Flask) -> None:
         return {"current_year": datetime.utcnow().year}
 
 
+def _register_cli(app: Flask) -> None:
+    """Attach custom CLI commands (e.g. `flask create-admin`)."""
+    from app.cli import register_commands
+
+    register_commands(app)
+
+
 def _init_extensions(app: Flask) -> None:
     db.init_app(app)
     migrate.init_app(app, db)
@@ -50,6 +58,10 @@ def _init_extensions(app: Flask) -> None:
 
 
 def _register_blueprints(app: Flask) -> None:
+    from app.blueprints.auth import auth_bp
+    from app.blueprints.dashboard import dashboard_bp
     from app.blueprints.public import public_bp
 
     app.register_blueprint(public_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)

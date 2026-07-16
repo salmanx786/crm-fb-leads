@@ -26,15 +26,23 @@ def get_metrics() -> dict[str, int]:
         Lead.created_at >= start_of_week
     ).scalar()
     total = db.session.query(func.count(Lead.id)).scalar()
-    admissions = db.session.query(func.count(Lead.id)).filter(
-        Lead.status == ADMITTED_STATUS
-    ).scalar()
+
+    # Per-status counts the dashboard cards surface. One query returns every
+    # status/count pair; we read the ones we care about from the mapping.
+    status_rows = (
+        db.session.query(Lead.status, func.count(Lead.id))
+        .group_by(Lead.status)
+        .all()
+    )
+    by_status = {status: count for status, count in status_rows}
 
     return {
         "today": today or 0,
         "this_week": this_week or 0,
         "total": total or 0,
-        "admissions": admissions or 0,
+        "interested": by_status.get("Interested", 0),
+        "admitted": by_status.get(ADMITTED_STATUS, 0),
+        "rejected": by_status.get("Rejected", 0),
     }
 
 

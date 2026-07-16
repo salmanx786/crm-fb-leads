@@ -1,0 +1,99 @@
+{% extends "dashboard/base.html" %}
+{% from "dashboard/_macros.html" import status_badge %}
+
+{% block title %}Leads — MC College{% endblock %}
+{% block page_title %}Leads{% endblock %}
+
+{% block content %}
+
+{# ============================ Filters ============================ #}
+<form method="GET" action="{{ url_for('dashboard.leads') }}"
+      class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <input type="text" name="q" value="{{ search }}" placeholder="Search name, phone, or email"
+           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500" />
+  </div>
+  <select name="status"
+          class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+      <option value="{{ s }}" {{ 'selected' if s == active_status else '' }}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <div class="flex gap-2">
+    <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">Filter</button>
+    {% if search or active_status %}
+      <a href="{{ url_for('dashboard.leads') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+{# ============================ Results ============================ #}
+<div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+  <div class="border-b border-slate-200 px-5 py-3 text-sm text-slate-500">
+    {{ pagination.total }} lead{{ '' if pagination.total == 1 else 's' }} found
+  </div>
+
+  {% if leads %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="px-5 py-3">Name</th>
+            <th class="px-5 py-3">Phone</th>
+            <th class="px-5 py-3">City</th>
+            <th class="px-5 py-3">Course</th>
+            <th class="px-5 py-3">Status</th>
+            <th class="px-5 py-3">Received</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for lead in leads %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3">
+                <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="font-medium text-teal-700 hover:underline">{{ lead.name }}</a>
+              </td>
+              <td class="px-5 py-3 text-slate-600">{{ lead.phone }}</td>
+              <td class="px-5 py-3 text-slate-600">{{ lead.city or '—' }}</td>
+              <td class="px-5 py-3 text-slate-600">{{ lead.course or '—' }}</td>
+              <td class="px-5 py-3">{{ status_badge(lead.status) }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ lead.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="px-5 py-10 text-center text-sm text-slate-500">No leads match your filters.</p>
+  {% endif %}
+</div>
+
+{# ============================ Pagination ============================ #}
+{% if pagination.pages > 1 %}
+  {% set args = {} %}
+  {% if search %}{% set _ = args.update({'q': search}) %}{% endif %}
+  {% if active_status %}{% set _ = args.update({'status': active_status}) %}{% endif %}
+  <nav class="mt-5 flex items-center justify-between" aria-label="Pagination">
+    <div class="text-sm text-slate-500">Page {{ pagination.page }} of {{ pagination.pages }}</div>
+    <div class="flex gap-1">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('dashboard.leads', page=pagination.prev_num, **args) }}"
+           class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Previous</a>
+      {% endif %}
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <a href="{{ url_for('dashboard.leads', page=p, **args) }}"
+             class="rounded-lg border px-3 py-1.5 text-sm font-medium {{ 'border-teal-600 bg-teal-600 text-white' if p == pagination.page else 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">{{ p }}</a>
+        {% else %}
+          <span class="px-2 py-1.5 text-sm text-slate-400">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}
+        <a href="{{ url_for('dashboard.leads', page=pagination.next_num, **args) }}"
+           class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Next</a>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}
+
+{% endblock %}

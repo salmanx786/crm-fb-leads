@@ -18,7 +18,11 @@ class User(UserMixin, BaseModel):
     is_active_flag = db.Column("is_active", db.Boolean, default=True, nullable=False)
 
     def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password)
+        # pbkdf2:sha256 is available in every Python/OpenSSL build (unlike
+        # scrypt, Werkzeug's default), so hashing works on shared hosting.
+        self.password_hash = generate_password_hash(
+            password, method="pbkdf2:sha256"
+        )
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
