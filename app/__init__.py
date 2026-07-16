@@ -22,15 +22,44 @@ def create_app(config_name: str | None = None) -> Flask:
     config_name = config_name or os.environ.get("FLASK_CONFIG", "default")
     app.config.from_object(config[config_name])
 
+    _configure_logging(app)
     _init_extensions(app)
     _register_blueprints(app)
     _register_context_processors(app)
+    _register_error_handlers(app)
     _register_cli(app)
 
     # Ensure models are imported so SQLAlchemy/Migrate see them.
     from app import models  # noqa: F401
 
     return app
+
+
+def _configure_logging(app: Flask) -> None:
+    from app.utils.logger import configure_logging
+
+    configure_logging(app)
+
+
+def _register_error_handlers(app: Flask) -> None:
+    """Log unhandled (500-class) exceptions before Flask handles them."""
+    from werkzeug.exceptions import HTTPException
+
+    from app.utils.logger import get_logger
+
+    logger = get_logger("app.errors")
+
+    @app.errorhandler(Exception)
+    def _on_exception(exc: Exception):
+        # Let normal HTTP responses (404, 400 CSRF, 401, etc.) pass through
+        # untouched — they're expected control flow, not failures to log.
+        if isinstance(exc, HTTPException):
+            return exc
+        # Real unhandled error: record the traceback. No request body is
+        # logged, so passwords / tokens in the POST payload never reach the log.
+        logger.exception("Unhandled exception: %s", exc)
+        # Re-raise so Flask's normal 500 handling / debugger still runs.
+        raise exc
 
 
 def _register_context_processors(app: Flask) -> None:

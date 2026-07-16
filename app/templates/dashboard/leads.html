@@ -9,10 +9,13 @@
 {# ============================ Filters ============================ #}
 <form method="GET" action="{{ url_for('dashboard.leads') }}"
       class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+  {# Preserve the active period (from a card drill-down) across search/filter. #}
+  {% if active_period %}<input type="hidden" name="period" value="{{ active_period }}" />{% endif %}
   <div class="relative flex-1">
-    <input type="text" name="q" value="{{ search }}" placeholder="Search name, phone, or email"
+    <input type="text" name="q" value="{{ search }}" placeholder="Search name, phone, email, city, or course"
            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500" />
   </div>
+  {% if active_period %}<input type="hidden" name="period" value="{{ active_period }}" />{% endif %}
   <select name="status"
           class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500">
     <option value="">All statuses</option>
@@ -73,6 +76,7 @@
   {% set args = {} %}
   {% if search %}{% set _ = args.update({'q': search}) %}{% endif %}
   {% if active_status %}{% set _ = args.update({'status': active_status}) %}{% endif %}
+  {% if active_period %}{% set _ = args.update({'period': active_period}) %}{% endif %}
   <nav class="mt-5 flex items-center justify-between" aria-label="Pagination">
     <div class="text-sm text-slate-500">Page {{ pagination.page }} of {{ pagination.pages }}</div>
     <div class="flex gap-1">

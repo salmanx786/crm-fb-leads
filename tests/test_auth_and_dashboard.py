@@ -7,6 +7,7 @@ the service layer, so asserting on the DB confirms the whole chain.
 import re
 
 import pytest
+from sqlalchemy import select
 
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent, User
@@ -50,7 +51,8 @@ def _login(client, email="admin@mc.edu", password="s3cret-pass"):
 # --- create-admin ---------------------------------------------------------
 
 def test_create_admin_hashes_password_and_persists(app, admin):
-    stored = User.query.filter_by(email="admin@mc.edu").one()
+    stored = db.session.scalar(select(User).filter_by(email="admin@mc.edu"))
+    assert stored is not None
     assert stored.name == "Admin User"
     assert stored.password_hash != "s3cret-pass"      # not stored in plaintext
     assert stored.check_password("s3cret-pass")       # but verifies correctly
@@ -110,7 +112,10 @@ def test_update_status_changes_lead_and_logs_event(client, admin, lead, app):
         refreshed = db.session.get(Lead, lead_id)
         assert refreshed.status == "Interested"
         # created + status_changed
-        types = {e.event_type for e in TimelineEvent.query.filter_by(lead_id=lead_id)}
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id)
+        ).all()
+        types = {e.event_type for e in events}
         assert "status_changed" in types
 
 
@@ -130,8 +135,13 @@ def test_add_note_persists_and_logs_event(client, admin, lead, app):
     assert resp.status_code == 302
 
     with app.app_context():
-        notes = LeadNote.query.filter_by(lead_id=lead_id).all()
+        notes = db.session.scalars(
+            select(LeadNote).filter_by(lead_id=lead_id)
+        ).all()
         assert len(notes) == 1
         assert notes[0].body == "Called; interested in MBA."
-        types = {e.event_type for e in TimelineEvent.query.filter_by(lead_id=lead_id)}
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id)
+        ).all()
+        types = {e.event_type for e in events}
         assert "note_added" in types

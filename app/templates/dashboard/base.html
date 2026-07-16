@@ -52,6 +52,20 @@
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
         View Site
       </a>
+
+      {# Placeholders for upcoming sections. Disabled until built. #}
+      <div class="px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">Coming soon</div>
+      {% set soon = 'flex cursor-not-allowed items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500' %}
+      {% set soon_badge = 'rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300' %}
+      {% for label in ['Users', 'Settings', 'Profile'] %}
+        <span class="{{ soon }}" aria-disabled="true" title="Coming soon">
+          <span class="flex items-center gap-3">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            {{ label }}
+          </span>
+          <span class="{{ soon_badge }}">Soon</span>
+        </span>
+      {% endfor %}
     </nav>
   </aside>
 

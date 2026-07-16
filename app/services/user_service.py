@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import select
+
 from app.extensions import db
 from app.models import User
 from app.utils.helpers import clean_str, normalize_email
@@ -21,7 +23,7 @@ def get_by_email(email: str) -> Optional[User]:
     email = normalize_email(email)
     if not email:
         return None
-    return User.query.filter_by(email=email).first()
+    return db.session.scalar(select(User).filter_by(email=email))
 
 
 def create_admin(name: str, email: str, password: str) -> User:

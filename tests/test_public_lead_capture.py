@@ -6,6 +6,9 @@ lead plus its "created" timeline event were persisted.
 """
 import re
 
+from sqlalchemy import func, select
+
+from app.extensions import db
 from app.models import Lead, TimelineEvent
 
 # Pulls the value out of <input ... name="csrf_token" ... value="...">
@@ -54,7 +57,7 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
 
     # 4b. The lead was created with normalised, attributed data.
     with app.app_context():
-        leads = Lead.query.all()
+        leads = db.session.scalars(select(Lead)).all()
         assert len(leads) == 1
         lead = leads[0]
         assert lead.name == "Asha Verma"
@@ -67,7 +70,9 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
         assert lead.user_agent is not None  # captured from the request
 
         # 4c. Exactly one "created" timeline event is linked to the lead.
-        events = TimelineEvent.query.filter_by(lead_id=lead.id).all()
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead.id)
+        ).all()
         assert len(events) == 1
         assert events[0].event_type == "created"
 
@@ -88,8 +93,8 @@ def test_admission_submission_rejects_invalid_data(client, app):
 
     assert resp.status_code == 400
     with app.app_context():
-        assert Lead.query.count() == 0
-        assert TimelineEvent.query.count() == 0
+        assert db.session.scalar(select(func.count(Lead.id))) == 0
+        assert db.session.scalar(select(func.count(TimelineEvent.id))) == 0
 
 
 def test_admission_submission_without_csrf_is_rejected(client, app):
@@ -100,4 +105,4 @@ def test_admission_submission_without_csrf_is_rejected(client, app):
     )
     assert resp.status_code in (400, 403)
     with app.app_context():
-        assert Lead.query.count() == 0
+        assert db.session.scalar(select(func.count(Lead.id))) == 0

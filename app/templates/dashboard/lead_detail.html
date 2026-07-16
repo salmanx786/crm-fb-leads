@@ -45,9 +45,21 @@
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">UTM Source</dt><dd class="mt-0.5 text-slate-800">{{ lead.utm_source or '—' }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">UTM Medium</dt><dd class="mt-0.5 text-slate-800">{{ lead.utm_medium or '—' }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">UTM Campaign</dt><dd class="mt-0.5 text-slate-800">{{ lead.utm_campaign or '—' }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Referrer</dt><dd class="mt-0.5 break-all text-slate-800">{{ lead.referrer or '—' }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">IP Address</dt><dd class="mt-0.5 text-slate-800">{{ lead.ip_address or '—' }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">User Agent</dt><dd class="mt-0.5 break-all text-xs text-slate-600">{{ lead.user_agent or '—' }}</dd></div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Referrer</dt>
+          <dd class="mt-0.5 break-all text-slate-800">
+            {% if lead.referrer %}<a href="{{ lead.referrer }}" target="_blank" rel="noopener noreferrer" class="text-teal-700 hover:underline">{{ lead.referrer }}</a>{% else %}—{% endif %}
+          </dd>
+        </div>
+        {% if lead.landing_page_url is defined and lead.landing_page_url %}
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Landing Page URL</dt>
+          <dd class="mt-0.5 break-all text-slate-800"><a href="{{ lead.landing_page_url }}" target="_blank" rel="noopener noreferrer" class="text-teal-700 hover:underline">{{ lead.landing_page_url }}</a></dd>
+        </div>
+        {% endif %}
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">IP Address</dt><dd class="mt-0.5 font-mono text-sm text-slate-800">{{ lead.ip_address or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Submission Date &amp; Time</dt><dd class="mt-0.5 text-slate-800">{{ lead.created_at.strftime('%d %b %Y, %H:%M:%S') }} <span class="text-xs text-slate-400">UTC</span></dd></div>
+        <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Browser / User Agent</dt><dd class="mt-0.5 break-all text-xs text-slate-600">{{ lead.user_agent or '—' }}</dd></div>
       </dl>
     </section>
 

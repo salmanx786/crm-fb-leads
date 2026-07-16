@@ -42,9 +42,10 @@ def leads():
     page = request.args.get("page", 1, type=int)
     search = request.args.get("q", type=str)
     status = request.args.get("status", type=str)
+    period = request.args.get("period", type=str)
 
     pagination = dashboard_service.list_leads(
-        page=page, search=search, status=status
+        page=page, search=search, status=status, period=period
     )
     return render_template(
         "dashboard/leads.html",
@@ -53,6 +54,7 @@ def leads():
         statuses=LEAD_STATUSES,
         search=search or "",
         active_status=status or "",
+        active_period=period or "",
     )
 
 
