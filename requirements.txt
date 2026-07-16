@@ -1,0 +1,21 @@
+# Core
+Flask==3.0.3
+Jinja2==3.1.4
+Werkzeug==3.0.3
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.31
+PyMySQL==1.1.1           # Pure-Python MySQL driver (no C build needed on shared hosting)
+
+# Auth & Forms
+Flask-Login==0.6.3
+Flask-WTF==1.2.1         # Forms + CSRF protection
+WTForms==3.1.2
+email-validator==2.2.0  # Email field validation
+
+# Config
+python-dotenv==1.0.1
+
+# Migrations (optional but handy)
+Flask-Migrate==4.0.7
