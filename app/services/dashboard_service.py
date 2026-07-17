@@ -125,21 +125,22 @@ def _apply_follow_up_filter(stmt, follow_up: Optional[str]):
     return stmt
 
 
-def list_leads(
-    page: int = 1,
-    per_page: int = 20,
+def _filtered_leads_stmt(
     search: Optional[str] = None,
     status: Optional[str] = None,
     period: Optional[str] = None,
     follow_up: Optional[str] = None,
 ):
-    """Return a Flask-SQLAlchemy Pagination of leads, newest first.
+    """Build the filtered, newest-first `select(Lead)` shared by the listing.
+
+    Single source of truth for the dashboard's lead filters so the paginated
+    list (`list_leads`) and the full-set export (`filtered_leads`) apply
+    identical SQL — no duplicated WHERE logic.
 
     `search` matches name/phone/email/city/course (case-insensitive);
     `status` filters by exact stage; `period` ("today"/"week") bounds by
-    creation time so the metric cards can deep-link into a filtered list;
-    `follow_up` ("overdue"/"today"/"upcoming"/"no_follow_up") bounds by the
-    next follow-up date. All filters compose and run in SQL.
+    creation time; `follow_up` ("overdue"/"today"/"upcoming"/"no_follow_up")
+    bounds by the next follow-up date. All filters compose and run in SQL.
     """
     stmt = select(Lead)
 
@@ -164,11 +165,39 @@ def list_leads(
 
     stmt = _apply_follow_up_filter(stmt, follow_up)
 
-    stmt = stmt.order_by(Lead.created_at.desc())
+    return stmt.order_by(Lead.created_at.desc())
 
-    # db.paginate runs the select and wraps it in the familiar Pagination
-    # object (items, pages, has_next, iter_pages, ...).
+
+def list_leads(
+    page: int = 1,
+    per_page: int = 20,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    period: Optional[str] = None,
+    follow_up: Optional[str] = None,
+):
+    """Return a Flask-SQLAlchemy Pagination of leads, newest first.
+
+    Applies the shared dashboard filters (see `_filtered_leads_stmt`) and wraps
+    the result in the familiar Pagination object (items, pages, has_next,
+    iter_pages, ...).
+    """
+    stmt = _filtered_leads_stmt(search, status, period, follow_up)
     return db.paginate(stmt, page=page, per_page=per_page, error_out=False)
+
+
+def filtered_leads(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    period: Optional[str] = None,
+    follow_up: Optional[str] = None,
+) -> list[Lead]:
+    """Every lead matching the dashboard filters, newest first (unpaginated).
+
+    Reuses the exact same filter SQL as `list_leads` via `_filtered_leads_stmt`.
+    Backs the CSV export, which needs the full filtered set rather than a page.
+    """
+    return list(db.session.scalars(_filtered_leads_stmt(search, status, period, follow_up)))
 
 
 def recent_leads(limit: int = 5) -> list[Lead]:

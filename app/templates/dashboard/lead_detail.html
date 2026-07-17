@@ -8,11 +8,15 @@
 
 <div class="mb-4 flex items-center justify-between">
   <a href="{{ url_for('dashboard.leads') }}" class="text-sm font-medium text-teal-700 hover:underline">← Back to leads</a>
-  <form method="POST" action="{{ url_for('dashboard.delete_lead', lead_id=lead.id) }}"
-        onsubmit="return confirm('Delete this lead permanently? This cannot be undone.');">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50">Delete lead</button>
-  </form>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}"
+       class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Edit lead</a>
+    <form method="POST" action="{{ url_for('dashboard.delete_lead', lead_id=lead.id) }}"
+          onsubmit="return confirm('Delete this lead permanently? This cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50">Delete lead</button>
+    </form>
+  </div>
 </div>
 
 <div class="grid gap-6 lg:grid-cols-3">

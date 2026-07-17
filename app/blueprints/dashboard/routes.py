@@ -4,8 +4,12 @@ Every route here is login-protected. Routes stay thin: they read query
 params / form data, delegate to the service layer, and render or redirect.
 All writes go through lead_service so timeline events stay consistent.
 """
+import csv
+import io
+
 from flask import (
     Blueprint,
+    Response,
     abort,
     flash,
     redirect,
@@ -19,7 +23,7 @@ from app.constants import LEAD_STATUSES
 from app.services import dashboard_service, lead_service
 from app.services.lead_service import LeadValidationError
 
-from .forms import FollowUpForm, NoteForm, StatusForm
+from .forms import BulkActionForm, FollowUpForm, LeadEditForm, NoteForm, StatusForm
 
 # Follow-up filter options surfaced as toggle links on the leads list.
 # (value, label) — value matches dashboard_service.list_leads(follow_up=...).
@@ -29,6 +33,49 @@ FOLLOW_UP_FILTERS = [
     ("upcoming", "Upcoming"),
     ("no_follow_up", "No Follow-up"),
 ]
+
+# CSV export column headers, in order. Maps 1:1 to _lead_csv_row below.
+# Deliberately excludes timeline, notes, meta events, and audit fields.
+EXPORT_COLUMNS = [
+    "ID",
+    "Created At",
+    "Name",
+    "Phone",
+    "Email",
+    "City",
+    "Course",
+    "Status",
+    "Source",
+    "Next Follow-up",
+    "Duplicate Count",
+]
+
+
+def _iso(value):
+    """ISO-8601 datetime string, or empty for a missing value."""
+    return value.isoformat() if value else ""
+
+
+def _lead_csv_row(lead, duplicate_count):
+    """Shape one Lead into an export row matching EXPORT_COLUMNS.
+
+    Missing values render as empty cells; datetimes use ISO-8601. "Source"
+    is the lead's utm_source (consistent with the edit form's labelling).
+    """
+    return [
+        lead.id,
+        _iso(lead.created_at),
+        lead.name or "",
+        lead.phone or "",
+        lead.email or "",
+        lead.city or "",
+        lead.course or "",
+        lead.status or "",
+        lead.utm_source or "",
+        _iso(lead.next_follow_up_at),
+        duplicate_count,
+    ]
+
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
@@ -63,12 +110,46 @@ def leads():
         leads=pagination.items,
         duplicate_counts=dashboard_service.duplicate_counts(pagination.items),
         follow_up_state=dashboard_service.follow_up_state,
+        bulk_form=BulkActionForm(),
         statuses=LEAD_STATUSES,
         follow_up_filters=FOLLOW_UP_FILTERS,
         search=search or "",
         active_status=status or "",
         active_period=period or "",
         active_follow_up=follow_up or "",
+    )
+
+
+@dashboard_bp.route("/leads/export.csv")
+@login_required
+def export_leads_csv():
+    """Download the currently-filtered lead list as a UTF-8 CSV.
+
+    Thin: reads the same query params as the list view, reuses
+    dashboard_service.filtered_leads (identical filter SQL) plus the existing
+    duplicate_counts, shapes rows, and returns the CSV. Loading the full
+    filtered set into memory is acceptable for V1 (see spec).
+    """
+    search = request.args.get("q", type=str)
+    status = request.args.get("status", type=str)
+    period = request.args.get("period", type=str)
+    follow_up = request.args.get("follow_up", type=str)
+
+    leads = dashboard_service.filtered_leads(
+        search=search, status=status, period=period, follow_up=follow_up
+    )
+    dup_counts = dashboard_service.duplicate_counts(leads)
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(EXPORT_COLUMNS)
+    for lead in leads:
+        writer.writerow(_lead_csv_row(lead, dup_counts.get(lead.id, 1)))
+
+    return Response(
+        buffer.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=leads.csv"},
     )
 
 
@@ -103,6 +184,29 @@ def lead_detail(lead_id: int):
         follow_up_form=FollowUpForm(next_follow_up_at=lead.next_follow_up_at),
         follow_up_state=dashboard_service.follow_up_state,
     )
+
+
+@dashboard_bp.route("/leads/<int:lead_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_lead(lead_id: int):
+    """Edit a lead. GET renders the prefilled form; POST delegates to LeadService."""
+    lead = lead_service.get_lead(lead_id)
+    if lead is None:
+        abort(404)
+
+    # obj=lead prefills every field (names match Lead attributes) on GET and on
+    # a re-render after a validation error.
+    form = LeadEditForm(obj=lead)
+    if form.validate_on_submit():
+        try:
+            lead_service.update_lead(lead, form.data, actor_id=_current_user_id())
+            flash("Lead updated.", "success")
+            return redirect(url_for("dashboard.lead_detail", lead_id=lead_id))
+        except LeadValidationError as exc:
+            for message in exc.errors.values():
+                flash(message, "error")
+
+    return render_template("dashboard/lead_edit.html", lead=lead, form=form)
 
 
 @dashboard_bp.route("/leads/<int:lead_id>/status", methods=["POST"])
@@ -197,6 +301,37 @@ def delete_lead(lead_id: int):
 
     lead_service.delete_lead(lead)
     flash("Lead deleted.", "success")
+    return redirect(url_for("dashboard.leads"))
+
+
+@dashboard_bp.route("/leads/bulk", methods=["POST"])
+@login_required
+def bulk_action():
+    """Apply one action to the checked leads via LeadService.
+
+    Thin: validate the form, read the checked ids, delegate to
+    lead_service.bulk_action (which owns the single-transaction / rollback
+    boundary), flash the outcome, and redirect back to the list.
+    """
+    form = BulkActionForm()
+    # Checkbox ids are a dynamic list, so read them from the raw form.
+    lead_ids = request.form.getlist("lead_ids", type=int)
+
+    if form.validate_on_submit():
+        try:
+            count = lead_service.bulk_action(
+                action=form.action.data,
+                lead_ids=lead_ids,
+                actor_id=_current_user_id(),
+                status=form.status.data or None,
+                when=form.next_follow_up_at.data,
+            )
+            flash(f"Bulk action applied to {count} lead(s).", "success")
+        except LeadValidationError as exc:
+            flash("; ".join(exc.errors.values()), "error")
+    else:
+        flash("Could not apply bulk action. Please try again.", "error")
+
     return redirect(url_for("dashboard.leads"))
 
 

@@ -15,7 +15,6 @@
     <input type="text" name="q" value="{{ search }}" placeholder="Search name, phone, email, city, or course"
            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500" />
   </div>
-  {% if active_period %}<input type="hidden" name="period" value="{{ active_period }}" />{% endif %}
   <select name="status"
           class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500">
     <option value="">All statuses</option>
@@ -30,6 +29,10 @@
     {% if search or active_status or active_follow_up %}
       <a href="{{ url_for('dashboard.leads') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Clear</a>
     {% endif %}
+    {# Export the currently-filtered set. Carries the active filters through so
+       the download matches what's on screen. #}
+    <a href="{{ url_for('dashboard.export_leads_csv', q=search or none, status=active_status or none, period=active_period or none, follow_up=active_follow_up or none) }}"
+       class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Export CSV</a>
   </div>
 </form>
 
@@ -53,9 +56,43 @@
 </div>
 
 {# ============================ Results ============================ #}
-<div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
-  <div class="border-b border-slate-200 px-5 py-3 text-sm text-slate-500">
-    {{ pagination.total }} lead{{ '' if pagination.total == 1 else 's' }} found
+{# The results table lives inside the bulk-action POST form so the checked
+   row ids submit together. The GET filter form above is separate — forms
+   can't nest. A small vanilla-JS helper (bottom of file) wires select-all,
+   the per-action inputs, and disables Execute until a row + action are chosen. #}
+<form id="bulk-form" method="POST" action="{{ url_for('dashboard.bulk_action') }}"
+      class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+  {{ bulk_form.hidden_tag() }}
+
+  <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="text-sm text-slate-500">
+      {{ pagination.total }} lead{{ '' if pagination.total == 1 else 's' }} found
+    </div>
+
+    {% if leads %}
+      {# ---- Bulk toolbar ---- #}
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="bulk-count" class="text-xs font-medium text-slate-400">0 selected</span>
+        {{ bulk_form.action(id="bulk-action-select", class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+
+        {# Shown only when "Change Status" is chosen. #}
+        <span id="bulk-status-wrap" class="hidden">
+          {{ bulk_form.status(id="bulk-status-select", class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        </span>
+
+        {# Reuses the same datetime-local field as FollowUpForm; shown only for
+           "Schedule Follow-up". #}
+        <span id="bulk-followup-wrap" class="hidden">
+          {{ bulk_form.next_follow_up_at(id="bulk-followup-input", class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        </span>
+
+        <button type="submit" id="bulk-execute" disabled
+                onclick="return window.__bulkConfirm();"
+                class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50">
+          Execute
+        </button>
+      </div>
+    {% endif %}
   </div>
 
   {% if leads %}
@@ -63,6 +100,10 @@
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
+            <th class="px-5 py-3">
+              <input type="checkbox" id="bulk-select-all" aria-label="Select all leads"
+                     class="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+            </th>
             <th class="px-5 py-3">Name</th>
             <th class="px-5 py-3">Phone</th>
             <th class="px-5 py-3">City</th>
@@ -71,11 +112,17 @@
             <th class="px-5 py-3">Next Follow-up</th>
             <th class="px-5 py-3">Duplicates</th>
             <th class="px-5 py-3">Received</th>
+            <th class="px-5 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
           {% for lead in leads %}
             <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3">
+                <input type="checkbox" name="lead_ids" value="{{ lead.id }}"
+                       aria-label="Select {{ lead.name }}"
+                       class="bulk-row-check rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+              </td>
               <td class="px-5 py-3">
                 <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="font-medium text-teal-700 hover:underline">{{ lead.name }}</a>
               </td>
@@ -86,6 +133,9 @@
               <td class="px-5 py-3">{{ follow_up_badge(lead.next_follow_up_at, follow_up_state(lead.next_follow_up_at)) }}</td>
               <td class="px-5 py-3">{{ duplicate_badge(lead, duplicate_counts.get(lead.id)) }}</td>
               <td class="px-5 py-3 text-slate-500">{{ lead.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+              <td class="px-5 py-3 text-right">
+                <a href="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}" class="font-medium text-teal-700 hover:underline">Edit</a>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
@@ -94,7 +144,7 @@
   {% else %}
     <p class="px-5 py-10 text-center text-sm text-slate-500">No leads match your filters.</p>
   {% endif %}
-</div>
+</form>
 
 {# ============================ Pagination ============================ #}
 {% if pagination.pages > 1 %}
@@ -126,4 +176,70 @@
   </nav>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+{# Bulk-action helper: select-all, live count, per-action inputs, and a guard
+   that keeps Execute disabled until a row + action are chosen. Progressive
+   enhancement — the form still submits without JS; the server validates. #}
+<script>
+  (function () {
+    const form = document.getElementById("bulk-form");
+    if (!form) return;  // no leads on this page
+
+    const selectAll = document.getElementById("bulk-select-all");
+    const rows = Array.from(document.querySelectorAll(".bulk-row-check"));
+    const actionSelect = document.getElementById("bulk-action-select");
+    const statusWrap = document.getElementById("bulk-status-wrap");
+    const statusSelect = document.getElementById("bulk-status-select");
+    const followupWrap = document.getElementById("bulk-followup-wrap");
+    const followupInput = document.getElementById("bulk-followup-input");
+    const execute = document.getElementById("bulk-execute");
+    const count = document.getElementById("bulk-count");
+
+    function checkedCount() {
+      return rows.filter((r) => r.checked).length;
+    }
+
+    function refresh() {
+      const n = checkedCount();
+      count.textContent = n + " selected";
+      // Reflect indeterminate/all state on the header checkbox.
+      selectAll.checked = n > 0 && n === rows.length;
+      selectAll.indeterminate = n > 0 && n < rows.length;
+
+      const action = actionSelect.value;
+      statusWrap.classList.toggle("hidden", action !== "change_status");
+      followupWrap.classList.toggle("hidden", action !== "schedule_follow_up");
+
+      // Enable Execute only when at least one row and an action are chosen,
+      // plus the action's required parameter where applicable.
+      let ok = n > 0 && !!action;
+      if (action === "change_status") ok = ok && !!statusSelect.value;
+      if (action === "schedule_follow_up") ok = ok && !!followupInput.value;
+      execute.disabled = !ok;
+    }
+
+    selectAll.addEventListener("change", function () {
+      rows.forEach((r) => (r.checked = selectAll.checked));
+      refresh();
+    });
+    rows.forEach((r) => r.addEventListener("change", refresh));
+    actionSelect.addEventListener("change", refresh);
+    statusSelect.addEventListener("change", refresh);
+    followupInput.addEventListener("change", refresh);
+
+    // Confirm destructive deletes before submitting (invoked from the button).
+    window.__bulkConfirm = function () {
+      if (actionSelect.value === "delete") {
+        return confirm(
+          "Delete " + checkedCount() + " selected lead(s) permanently? This cannot be undone."
+        );
+      }
+      return true;
+    };
+
+    refresh();
+  })();
+</script>
 {% endblock %}

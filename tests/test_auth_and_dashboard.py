@@ -4,6 +4,8 @@ Covers: create-admin logic, login (success + failure), protected-route
 redirects, status updates, and note creation. All write paths go through
 the service layer, so asserting on the DB confirms the whole chain.
 """
+import csv
+import io
 import re
 
 import pytest
@@ -147,6 +149,75 @@ def test_add_note_persists_and_logs_event(client, admin, lead, app):
         assert "note_added" in types
 
 
+# --- lead editing ---------------------------------------------------------
+
+def test_edit_lead_form_renders_prefilled(client, admin, lead):
+    _login(client)
+    resp = client.get(f"/dashboard/leads/{lead.id}/edit")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    # Prefilled from the lead (obj=lead) and posts back to the edit route.
+    assert "Rohan Das" in html
+    assert f"/dashboard/leads/{lead.id}/edit" in html
+
+
+def test_edit_lead_updates_fields_and_records_event(client, admin, lead, app):
+    _login(client)
+    lead_id = lead.id
+
+    form = client.get(f"/dashboard/leads/{lead_id}/edit")
+    token = _csrf(form.get_data(as_text=True))
+
+    resp = client.post(
+        f"/dashboard/leads/{lead_id}/edit",
+        data={
+            "csrf_token": token,
+            "name": "Rohan D.",
+            "phone": lead.phone,
+            "email": lead.email,
+            "city": "Pune",
+            "course": "",
+            "utm_source": "referral",
+            "status": "Interested",
+            "message": "",
+        },
+    )
+    assert resp.status_code == 302
+    assert f"/dashboard/leads/{lead_id}" in resp.headers["Location"]
+
+    with app.app_context():
+        refreshed = db.session.get(Lead, lead_id)
+        assert refreshed.name == "Rohan D."
+        assert refreshed.city == "Pune"
+        assert refreshed.utm_source == "referral"
+        assert refreshed.status == "Interested"
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id, event_type="updated")
+        ).all()
+        assert len(events) == 1
+
+
+def test_edit_lead_invalid_phone_reraises_form(client, admin, lead, app):
+    _login(client)
+    lead_id = lead.id
+
+    form = client.get(f"/dashboard/leads/{lead_id}/edit")
+    token = _csrf(form.get_data(as_text=True))
+
+    resp = client.post(
+        f"/dashboard/leads/{lead_id}/edit",
+        data={"csrf_token": token, "name": "Rohan Das", "phone": "abc", "status": "New"},
+    )
+    # Re-renders the form (200), does not redirect, and persists nothing.
+    assert resp.status_code == 200
+    with app.app_context():
+        # Phone is unchanged (normalised form the lead was created with).
+        assert db.session.get(Lead, lead_id).phone == "+919000000000"
+        assert db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id, event_type="updated")
+        ).all() == []
+
+
 # --- duplicate badge + drill-down -----------------------------------------
 
 def test_leads_list_shows_duplicate_badge(client, admin, app):
@@ -194,3 +265,105 @@ def test_duplicates_drill_down_lists_matching_submissions(client, admin, app):
 def test_duplicates_drill_down_404_for_unknown_lead(client, admin):
     _login(client)
     assert client.get("/dashboard/leads/999999/duplicates").status_code == 404
+
+
+# --- CSV export -----------------------------------------------------------
+
+def _export_rows(client, query=""):
+    """GET the export endpoint and parse it into a list of CSV rows."""
+    resp = client.get(f"/dashboard/leads/export.csv{query}")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers["Content-Type"]
+    assert "attachment" in resp.headers["Content-Disposition"]
+    text = resp.get_data(as_text=True)
+    return list(csv.reader(io.StringIO(text)))
+
+
+def test_export_has_header_row_and_all_leads(client, admin, app):
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="Apart", phone="+919000000001", status="New"),
+            Lead(name="Bpart", phone="+919000000002", status="Interested"),
+        ])
+        db.session.commit()
+
+    _login(client)
+    rows = _export_rows(client)
+    # Header matches the documented column order exactly.
+    assert rows[0] == [
+        "ID", "Created At", "Name", "Phone", "Email", "City", "Course",
+        "Status", "Source", "Next Follow-up", "Duplicate Count",
+    ]
+    # Two data rows (order is newest-first, but we only care about membership).
+    names = {r[2] for r in rows[1:]}
+    assert names == {"Apart", "Bpart"}
+
+
+def test_export_respects_status_filter(client, admin, app):
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="NewOne", phone="+919000000011", status="New"),
+            Lead(name="IntOne", phone="+919000000012", status="Interested"),
+        ])
+        db.session.commit()
+
+    _login(client)
+    rows = _export_rows(client, "?status=Interested")
+    names = {r[2] for r in rows[1:]}
+    assert names == {"IntOne"}
+
+
+def test_export_respects_search_filter(client, admin, app):
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="Findme", phone="+919000000021", city="Pune"),
+            Lead(name="Otherlead", phone="+919000000022", city="Mumbai"),
+        ])
+        db.session.commit()
+
+    _login(client)
+    rows = _export_rows(client, "?q=findme")
+    names = {r[2] for r in rows[1:]}
+    assert names == {"Findme"}
+
+
+def test_export_respects_follow_up_filter(client, admin, app):
+    from datetime import datetime, timedelta
+
+    now = datetime.utcnow()
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="Overdue", phone="+919000000031",
+                 next_follow_up_at=now - timedelta(days=2)),
+            Lead(name="Unscheduled", phone="+919000000032", next_follow_up_at=None),
+        ])
+        db.session.commit()
+
+    _login(client)
+    rows = _export_rows(client, "?follow_up=overdue")
+    names = {r[2] for r in rows[1:]}
+    assert names == {"Overdue"}
+
+
+def test_export_duplicate_count_column_populated(client, admin, app):
+    with app.app_context():
+        # Two submissions sharing a phone => each has Duplicate Count 2.
+        db.session.add_all([
+            Lead(name="DupA", phone="+919000009999", email="a@x.com"),
+            Lead(name="DupB", phone="+919000009999", email="b@x.com"),
+            Lead(name="Solo", phone="+919000008888", email="solo@x.com"),
+        ])
+        db.session.commit()
+
+    _login(client)
+    rows = _export_rows(client)
+    dup_col = {r[2]: r[10] for r in rows[1:]}  # name -> Duplicate Count
+    assert dup_col["DupA"] == "2"
+    assert dup_col["DupB"] == "2"
+    assert dup_col["Solo"] == "1"
+
+
+def test_export_requires_login(client):
+    resp = client.get("/dashboard/leads/export.csv", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/login" in resp.headers["Location"]

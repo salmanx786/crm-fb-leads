@@ -1,0 +1,70 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Edit {{ lead.name }} — Lead — MC College{% endblock %}
+{% block page_title %}Edit Lead{% endblock %}
+
+{% block content %}
+
+{% set field = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500" %}
+{% set label = "block text-sm font-medium text-slate-700" %}
+
+<div class="mb-4">
+  <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="text-sm font-medium text-teal-700 hover:underline">← Back to lead</a>
+</div>
+
+<div class="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <form method="POST" action="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}" class="space-y-4">
+    {{ form.hidden_tag() }}  {# CSRF token #}
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        {{ form.name.label(class=label) }}
+        {{ form.name(class=field) }}
+        {% for error in form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.phone.label(class=label) }}
+        {{ form.phone(class=field) }}
+        {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.email.label(class=label) }}
+        {{ form.email(class=field) }}
+        {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.city.label(class=label) }}
+        {{ form.city(class=field) }}
+        {% for error in form.city.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.course.label(class=label) }}
+        {{ form.course(class=field) }}
+        {% for error in form.course.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.status.label(class=label) }}
+        {{ form.status(class=field) }}
+        {% for error in form.status.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+      <div>
+        {{ form.utm_source.label(class=label) }}
+        {{ form.utm_source(class=field) }}
+        {% for error in form.utm_source.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div>
+      {{ form.message.label(class=label) }}
+      {{ form.message(rows=4, class=field) }}
+      {% for error in form.message.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+    </div>
+
+    <div class="flex gap-2 pt-2">
+      <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">Save changes</button>
+      <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

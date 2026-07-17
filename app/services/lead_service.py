@@ -6,6 +6,8 @@ normalisation, validation) happen consistently regardless of the caller.
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import select
+
 from app.constants import DEFAULT_LEAD_STATUS, is_valid_status
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
@@ -105,26 +107,84 @@ def get_lead(lead_id: int) -> Optional[Lead]:
     return db.session.get(Lead, lead_id)
 
 
+# Editable fields exposed by the dashboard edit form, mapped to the human
+# labels used in the "Lead updated" timeline summary. Order defines the summary
+# order. Internal/tracking fields (ip_address, user_agent, utm_medium/campaign,
+# referrer, timestamps) are deliberately not editable here.
+_EDIT_LABELS = {
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "city": "City",
+    "course": "Course",
+    "status": "Status",
+    "utm_source": "Source",
+    "message": "Message",
+}
+
+
 def update_lead(lead: Lead, data: dict, actor_id: Optional[int] = None) -> Lead:
-    """Update editable applicant fields and log the change."""
+    """Update editable lead fields, recording a single timeline event.
+
+    Reuses validate_lead_payload (name/phone/email) and is_valid_status for the
+    stage. Records one "Lead updated" event summarising which fields changed,
+    and is a no-op (no write, no event) when nothing changed — mirroring
+    change_status' idempotence. Phone/email are intentionally not required to be
+    unique, consistent with the rest of the project (see duplicate detection).
+    """
     errors = validate_lead_payload({**_as_dict(lead), **data})
+    status = data.get("status")
+    if status is not None and not is_valid_status(status):
+        errors["status"] = f"Unknown status: {status}"
     if errors:
         raise LeadValidationError(errors)
 
-    lead.name = clean_str(data.get("name"), 120) or lead.name
-    lead.phone = normalize_phone(data.get("phone")) or lead.phone
-    lead.email = normalize_email(data.get("email"))
-    lead.city = clean_str(data.get("city"), 120)
-    lead.course = clean_str(data.get("course"), 120)
-    lead.message = clean_str(data.get("message"))
+    # Normalise candidates the same way create_lead does. Required fields
+    # (name/phone) fall back to the current value when submitted blank.
+    candidates = {
+        "name": clean_str(data.get("name"), 120) or lead.name,
+        "phone": normalize_phone(data.get("phone")) or lead.phone,
+        "email": normalize_email(data.get("email")),
+        "city": clean_str(data.get("city"), 120),
+        "course": clean_str(data.get("course"), 120),
+        "status": status or lead.status,
+        "utm_source": clean_str(data.get("utm_source"), 120),
+        "message": clean_str(data.get("message")),
+    }
 
-    _record_event(lead, "updated", "Lead details updated.", actor_id)
+    # Only the fields that actually differ from what's stored.
+    changed = [f for f, v in candidates.items() if getattr(lead, f) != v]
+    if not changed:
+        return lead  # nothing changed; don't clutter the timeline
+
+    status_changed = "status" in changed
+    for field in changed:
+        setattr(lead, field, candidates[field])
+
+    summary = ", ".join(_EDIT_LABELS[f] for f in changed)
+    _record_event(lead, "updated", f"Lead updated: {summary}", actor_id)
     db.session.commit()
+    logger.info(
+        "Lead updated: id=%s fields=%s by user=%s",
+        lead.id, summary, actor_id if actor_id is not None else "-",
+    )
+    # Preserve the status-change side effect (Meta conversion) without emitting
+    # a second timeline event. No-op if disabled/untracked; never raises.
+    if status_changed:
+        meta_service.track_event(lead, lead.status)
     return lead
 
 
-def change_status(lead: Lead, new_status: str, actor_id: Optional[int] = None) -> Lead:
-    """Move a lead to a new lifecycle stage, recording the transition."""
+def change_status(
+    lead: Lead, new_status: str, actor_id: Optional[int] = None, commit: bool = True
+) -> Lead:
+    """Move a lead to a new lifecycle stage, recording the transition.
+
+    `commit=False` lets a caller (e.g. bulk_action) fold this into a larger
+    transaction: the field change + timeline event are staged but not
+    committed, and the Meta conversion is deferred to the caller so it only
+    fires once the change is durably committed.
+    """
     if not is_valid_status(new_status):
         raise LeadValidationError({"status": f"Unknown status: {new_status}"})
 
@@ -139,6 +199,9 @@ def change_status(lead: Lead, new_status: str, actor_id: Optional[int] = None) -
         f"Status changed from {old_status} to {new_status}.",
         actor_id,
     )
+    if not commit:
+        return lead
+
     db.session.commit()
     logger.info(
         "Lead status changed: id=%s %s -> %s by user=%s",
@@ -177,13 +240,14 @@ def _fmt_follow_up(value: Optional[datetime]) -> str:
 
 
 def set_follow_up(
-    lead: Lead, when: datetime, actor_id: Optional[int] = None
+    lead: Lead, when: datetime, actor_id: Optional[int] = None, commit: bool = True
 ) -> Lead:
     """Schedule or reschedule a lead's follow-up date.
 
     Records "scheduled" when there was none, "rescheduled from…to…" when the
     date moves, and is a no-op (no write, no timeline entry) when the submitted
     value matches the current one — mirroring change_status' idempotence.
+    `commit=False` stages the change for a caller-owned transaction.
     """
     if when is None:
         raise LeadValidationError({"next_follow_up_at": "A follow-up date is required."})
@@ -203,6 +267,9 @@ def set_follow_up(
             f"to {_fmt_follow_up(when)}"
         )
     _record_event(lead, "follow_up_set", description, actor_id)
+    if not commit:
+        return lead
+
     db.session.commit()
     logger.info(
         "Lead follow-up set: id=%s at=%s by user=%s",
@@ -211,16 +278,22 @@ def set_follow_up(
     return lead
 
 
-def clear_follow_up(lead: Lead, actor_id: Optional[int] = None) -> Lead:
+def clear_follow_up(
+    lead: Lead, actor_id: Optional[int] = None, commit: bool = True
+) -> Lead:
     """Remove a lead's follow-up date, recording the change.
 
     No-op (no write, no timeline entry) when there is nothing scheduled.
+    `commit=False` stages the change for a caller-owned transaction.
     """
     if lead.next_follow_up_at is None:
         return lead  # nothing to clear
 
     lead.next_follow_up_at = None
     _record_event(lead, "follow_up_cleared", "Follow-up cleared", actor_id)
+    if not commit:
+        return lead
+
     db.session.commit()
     logger.info(
         "Lead follow-up cleared: id=%s by user=%s",
@@ -229,10 +302,89 @@ def clear_follow_up(lead: Lead, actor_id: Optional[int] = None) -> Lead:
     return lead
 
 
-def delete_lead(lead: Lead) -> None:
-    """Delete a lead; cascade removes its notes and timeline events."""
+def delete_lead(lead: Lead, commit: bool = True) -> None:
+    """Delete a lead; cascade removes its notes and timeline events.
+
+    `commit=False` stages the delete for a caller-owned transaction.
+    """
     db.session.delete(lead)
-    db.session.commit()
+    if commit:
+        db.session.commit()
+
+
+# --- bulk actions ---------------------------------------------------------
+# One entry point that applies a single action to many leads atomically. It
+# orchestrates the existing per-lead operations with commit=False so every
+# lead gets exactly the timeline events it would get individually, then owns a
+# single commit/rollback boundary — no partial updates, no "bulk" event type.
+
+BULK_ACTIONS = ("change_status", "delete", "schedule_follow_up", "clear_follow_up")
+
+
+def bulk_action(
+    action: str,
+    lead_ids: list[int],
+    actor_id: Optional[int] = None,
+    status: Optional[str] = None,
+    when: Optional[datetime] = None,
+) -> int:
+    """Apply one action to many leads inside a single transaction.
+
+    `action` is one of BULK_ACTIONS. `status` is required for change_status;
+    `when` (a datetime) for schedule_follow_up. Returns the number of leads
+    processed. Raises LeadValidationError on an empty/unknown selection, an
+    invalid action, or invalid action params — and rolls back so nothing is
+    left partially applied. Per-lead validation and timeline events are reused
+    from the single-lead operations; the Meta conversion for status changes is
+    deferred until after the commit succeeds.
+    """
+    if action not in BULK_ACTIONS:
+        raise LeadValidationError({"action": f"Unknown bulk action: {action}"})
+
+    # De-duplicate while preserving order; reject an empty selection.
+    ids = list(dict.fromkeys(lead_ids or []))
+    if not ids:
+        raise LeadValidationError({"leads": "Select at least one lead."})
+
+    leads = list(db.session.scalars(select(Lead).where(Lead.id.in_(ids))))
+    found = {lead.id for lead in leads}
+    missing = [i for i in ids if i not in found]
+    if missing:
+        # A stale/tampered selection fails the whole operation (no partial run).
+        raise LeadValidationError(
+            {"leads": f"Some selected leads no longer exist: {missing}"}
+        )
+
+    try:
+        # Track leads whose status actually changed, to fire Meta post-commit.
+        status_changed: list[Lead] = []
+        for lead in leads:
+            if action == "change_status":
+                before = lead.status
+                change_status(lead, status, actor_id=actor_id, commit=False)
+                if lead.status != before:
+                    status_changed.append(lead)
+            elif action == "schedule_follow_up":
+                set_follow_up(lead, when, actor_id=actor_id, commit=False)
+            elif action == "clear_follow_up":
+                clear_follow_up(lead, actor_id=actor_id, commit=False)
+            elif action == "delete":
+                delete_lead(lead, commit=False)
+
+        db.session.commit()
+    except Exception:
+        # Any failure (validation or DB) rolls back the entire batch.
+        db.session.rollback()
+        raise
+
+    logger.info(
+        "Bulk %s applied to %d lead(s) by user=%s",
+        action, len(leads), actor_id if actor_id is not None else "-",
+    )
+    # Side effect only after a durable commit; never raises.
+    for lead in status_changed:
+        meta_service.track_event(lead, lead.status)
+    return len(leads)
 
 
 def _as_dict(lead: Lead) -> dict:
