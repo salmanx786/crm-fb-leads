@@ -6,6 +6,7 @@ render or redirect. All lead business logic lives in the service layer.
 from flask import (
     Blueprint,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -19,6 +20,17 @@ from app.services.reference_service import get_courses
 from app.utils.tracking import extract_tracking
 
 public_bp = Blueprint("public", __name__)
+
+
+@public_bp.route("/health", methods=["GET"])
+def health():
+    """Lightweight liveness probe for uptime monitors and load balancers.
+
+    Deliberately unauthenticated and does no database or business work, so it
+    stays fast and green even if the DB is unavailable — it reports that the
+    app process is up, nothing more.
+    """
+    return jsonify(status="ok"), 200
 
 
 @public_bp.route("/", methods=["GET"])

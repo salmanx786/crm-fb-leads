@@ -12,12 +12,24 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+# The insecure default SECRET_KEY. Fine for dev/testing, but production must
+# never run with it — ProductionConfig.init_app refuses to start if it does.
+PLACEHOLDER_SECRET_KEY = "change-me-in-production"
+
 
 class Config:
     """Base configuration shared across all environments."""
 
     # --- Security -------------------------------------------------------
-    SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
+    SECRET_KEY = os.environ.get("SECRET_KEY", PLACEHOLDER_SECRET_KEY)
+
+    @staticmethod
+    def init_app(app):
+        """Config-specific startup validation hook. No-op by default.
+
+        Called by the app factory after the config is loaded. Subclasses
+        override this to enforce environment-specific invariants.
+        """
 
     # WTForms CSRF protection is on by default; make the token last a day.
     WTF_CSRF_TIME_LIMIT = 86400
@@ -65,6 +77,11 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    @staticmethod
+    def init_app(app):
+        """Config-time hook run by the app factory. No-op by default;
+        ProductionConfig overrides it to enforce a safe SECRET_KEY."""
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -74,6 +91,22 @@ class ProductionConfig(Config):
     DEBUG = False
     # Require HTTPS-only cookies in production (cPanel serves via SSL).
     SESSION_COOKIE_SECURE = True
+
+    @staticmethod
+    def init_app(app):
+        """Fail fast if the app would run production with an unsafe secret.
+
+        A missing or placeholder SECRET_KEY in production means forgeable
+        session cookies and CSRF tokens, so we refuse to start rather than
+        boot silently insecure.
+        """
+        secret = app.config.get("SECRET_KEY")
+        if not secret or secret == PLACEHOLDER_SECRET_KEY:
+            raise RuntimeError(
+                "SECRET_KEY must be set to a strong, unique value in "
+                "production. Set the SECRET_KEY environment variable "
+                "(it is currently missing or still the insecure default)."
+            )
 
 
 class TestingConfig(Config):

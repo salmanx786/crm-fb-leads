@@ -20,7 +20,11 @@ def create_app(config_name: str | None = None) -> Flask:
     from config import config
 
     config_name = config_name or os.environ.get("FLASK_CONFIG", "default")
-    app.config.from_object(config[config_name])
+    config_class = config[config_name]
+    app.config.from_object(config_class)
+    # Let the config validate/adjust the app (e.g. ProductionConfig refuses to
+    # start with an unsafe SECRET_KEY). No-op for dev/testing.
+    config_class.init_app(app)
 
     _configure_logging(app)
     _init_extensions(app)
