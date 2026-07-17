@@ -4,6 +4,7 @@ Centralising the lead lifecycle here means the string `status` column, the
 form dropdown, the dashboard filters, and validation all read from one list.
 Add a stage by editing this file — no database migration required.
 """
+from __future__ import annotations  # 3.9-safe PEP 604 unions in annotations
 
 # Ordered lifecycle stages. Order is used for display in filters/dropdowns.
 LEAD_STATUSES: list[str] = [
@@ -27,3 +28,23 @@ ADMITTED_STATUS: str = "Admitted"
 def is_valid_status(value: str) -> bool:
     """True if `value` is a recognised lead status."""
     return value in LEAD_STATUSES
+
+
+# --- Meta Conversions API event mapping ---------------------------------
+# Maps a CRM trigger to the Meta (Facebook) event name we send. Kept here as
+# configuration so the meta_service never hardcodes event names and new
+# mappings are a one-line edit. Triggers not present here are simply not sent.
+#
+# "lead_created" is a synthetic trigger fired on lead creation; the rest are
+# lead statuses that, when reached, should raise a conversion event.
+META_EVENT_MAP: dict[str, str] = {
+    "lead_created": "Lead",
+    "Interested": "Lead",
+    "Documents Pending": "SubmitApplication",
+    "Admitted": "CompleteRegistration",
+}
+
+
+def meta_event_for(trigger: str) -> str | None:
+    """Return the Meta event name for a CRM trigger, or None if untracked."""
+    return META_EVENT_MAP.get(trigger)

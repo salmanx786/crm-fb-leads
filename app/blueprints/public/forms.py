@@ -14,7 +14,7 @@ from wtforms.validators import (
     Regexp,
 )
 
-from app.services.meta_service import get_courses
+from app.services.reference_service import get_courses
 
 # Accepts digits, spaces, +, -, and parentheses; 7–20 chars.
 _PHONE_PATTERN = r"^\+?[0-9\s\-()]{7,20}$"

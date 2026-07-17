@@ -67,6 +67,45 @@ Adds a note via `lead_service.add_note` (logs a `note_added` event).
 ### `POST /dashboard/leads/<id>/delete`
 Deletes the lead; notes and timeline cascade. Redirects to the list.
 
+## CLI
+
+### `flask create-admin`
+Creates an administrator (prompts for name, email, password).
+
+### `flask seed-demo-data [--count N]`
+Populates demo leads with timeline events and notes. Local development only.
+
+### `flask retry-meta-events`
+Resends every `MetaEvent` currently marked `failed` to the Meta Conversions
+API, reusing each event's stored `event_id` so Meta deduplicates. No-op when
+`META_ENABLED` is false. Prints a `retried / sent / failed` summary.
+
+## Meta Conversions API (outbound)
+
+Not an inbound route — the app *sends* server-side conversion events to Meta
+when important lead actions occur. Handled entirely by `meta_service`; callers
+only invoke `track_event(lead, trigger)`.
+
+**Triggers → Meta events** (configured in `app/constants.META_EVENT_MAP`, not
+hardcoded):
+
+| CRM trigger | Meta event |
+|---|---|
+| `lead_created` (on creation) | `Lead` |
+| status → `Interested` | `Lead` |
+| status → `Documents Pending` | `SubmitApplication` |
+| status → `Admitted` | `CompleteRegistration` |
+
+**PII:** email and phone are SHA-256 hashed (normalised first) before entering
+any payload. Raw email/phone are never sent, stored, or logged.
+
+**Env vars:** `META_ENABLED`, `META_PIXEL_ID`, `META_ACCESS_TOKEN`,
+`META_TEST_EVENT_CODE`. See [DEPLOYMENT.md](DEPLOYMENT.md).
+
+**Reliability:** every attempt is a `MetaEvent` row (`pending` → `sent` |
+`failed`). A Meta outage never breaks lead creation — failures are persisted,
+not raised — and `flask retry-meta-events` resends them.
+
 ## Conventions
 
 - **Thin routes.** Routes parse input and delegate to services; no business

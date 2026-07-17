@@ -42,6 +42,22 @@ class Config:
         "pool_pre_ping": True,
     }
 
+    # --- Meta (Facebook) Conversions API --------------------------------
+    # Server-side conversion events. Disabled by default; enable per env.
+    META_ENABLED = os.environ.get("META_ENABLED", "False").lower() in ("1", "true", "yes")
+    META_PIXEL_ID = os.environ.get("META_PIXEL_ID", "")
+    META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN", "")
+    # Optional: routes events to Meta's Test Events tool when set.
+    META_TEST_EVENT_CODE = os.environ.get("META_TEST_EVENT_CODE", "")
+    # Graph API version used to build the endpoint URL.
+    META_API_VERSION = os.environ.get("META_API_VERSION", "v19.0")
+    # Per-request timeout (seconds) so a slow Meta never blocks a lead write.
+    META_TIMEOUT = int(os.environ.get("META_TIMEOUT", "10"))
+    # Delivery strategy: "sync" sends inline (today). A future background queue
+    # registers a new dispatcher in meta_service and this switches to it,
+    # without any change to lead_service.
+    META_DISPATCH_MODE = os.environ.get("META_DISPATCH_MODE", "sync")
+
     # --- Pagination -----------------------------------------------------
     LEADS_PER_PAGE = int(os.environ.get("LEADS_PER_PAGE", "20"))
 

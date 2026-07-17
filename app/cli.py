@@ -149,3 +149,14 @@ def register_commands(app: Flask) -> None:
 
         db.session.commit()
         click.echo(f"Seeded {created} demo leads with timeline events and notes.")
+
+    @app.cli.command("retry-meta-events")
+    @click.option("--limit", default=100, show_default=True, help="Max events to retry.")
+    def retry_meta_events(limit: int) -> None:
+        """Resend all Meta Conversions API events currently marked failed."""
+        from app.services import meta_service
+
+        result = meta_service.retry_failed_events(limit=limit)
+        click.echo(
+            "Meta retry: retried={retried} sent={sent} failed={failed}".format(**result)
+        )

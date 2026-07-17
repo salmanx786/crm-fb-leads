@@ -15,7 +15,7 @@ from flask import (
 from app.blueprints.public.forms import AdmissionForm
 from app.services import lead_service
 from app.services.lead_service import LeadValidationError
-from app.services.meta_service import get_courses
+from app.services.reference_service import get_courses
 from app.utils.tracking import extract_tracking
 
 public_bp = Blueprint("public", __name__)

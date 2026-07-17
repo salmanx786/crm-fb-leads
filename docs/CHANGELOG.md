@@ -4,6 +4,39 @@ All notable changes to this project. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); the project is pre-1.0 so
 versions are milestone-based.
 
+## [Unreleased] — Meta Conversions API integration
+
+### Added
+- `app/services/meta_service.py` — Meta (Facebook) Conversions API integration:
+  `track_event`, `build_payload`, `hash_user_data`, `send_event`,
+  `save_result`, `retry_failed_events`. Business code only ever calls
+  `track_event`; it never builds a payload or knows Meta's wire format.
+- `MetaEvent` model — persists every send attempt (`pending`/`sent`/`failed`/
+  `orphaned`) with request/response payloads, so a failed send is never lost.
+  Indexed on `status`, `lead_id`, and `created_at` (via `BaseModel`).
+- `email` and `phone` are SHA-256 hashed (lowercase/trim, digits-only for
+  phone) before entering any payload or the database. Raw PII is never sent,
+  stored, or logged.
+- CRM-trigger → Meta-event mapping in `app/constants.META_EVENT_MAP`
+  (`lead_created`/`Interested` → `Lead`, `Documents Pending` →
+  `SubmitApplication`, `Admitted` → `CompleteRegistration`), so event names are
+  configuration, not hardcoded.
+- `flask retry-meta-events` CLI — resends only `failed` events, reusing each
+  event's `event_id` so Meta deduplicates against the original attempt.
+- Config: `META_ENABLED`, `META_PIXEL_ID`, `META_ACCESS_TOKEN`,
+  `META_TEST_EVENT_CODE`. `requests` added to requirements.
+- Tests (`tests/test_meta_service.py`) covering payload generation, hashing,
+  successful send, failed send, network error, retry, disabled/untracked
+  no-ops, and status-change triggering — all HTTP mocked; Meta is never called.
+
+### Changed
+- Renamed the previous `meta_service.py` (course/status dropdown data) to
+  `reference_service.py` to free the `meta_service` name for the Facebook
+  integration. Updated its two importers (`public/forms.py`, `public/routes.py`).
+- `lead_service` now calls `meta_service.track_event` on lead creation and on
+  status change. Meta failures are swallowed and persisted — they never break a
+  lead write.
+
 ## [Unreleased] — Production-readiness: structured logging
 
 ### Added

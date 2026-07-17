@@ -8,6 +8,7 @@ from typing import Optional
 from app.constants import DEFAULT_LEAD_STATUS, is_valid_status
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
+from app.services import meta_service
 from app.utils.helpers import clean_str, normalize_email, normalize_phone
 from app.utils.logger import get_logger
 from app.utils.validators import is_valid_email, is_valid_phone, is_nonempty
@@ -94,6 +95,8 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
         "Lead created: id=%s course=%s utm_source=%s",
         lead.id, lead.course or "-", lead.utm_source or "-",
     )
+    # Fire the Meta conversion event (no-op if disabled/untracked; never raises).
+    meta_service.track_event(lead, "lead_created")
     return lead
 
 
@@ -140,6 +143,9 @@ def change_status(lead: Lead, new_status: str, actor_id: Optional[int] = None) -
         "Lead status changed: id=%s %s -> %s by user=%s",
         lead.id, old_status, new_status, actor_id if actor_id is not None else "-",
     )
+    # Fire a Meta conversion for this status, if the status is mapped
+    # (no-op if disabled/untracked; never raises).
+    meta_service.track_event(lead, new_status)
     return lead
 
 
