@@ -11,6 +11,11 @@ then remove ADMIN_PASSWORD. Re-running is safe: a duplicate email is reported an
 no second admin is created.
 """
 import os
+import sys
+
+# Running a script puts scripts/ on sys.path, not the project root, so the
+# `app` package would not import. Add the project root explicitly.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from app.services import user_service
