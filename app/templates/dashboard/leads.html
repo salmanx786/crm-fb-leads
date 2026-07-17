@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% from "dashboard/_macros.html" import status_badge %}
+{% from "dashboard/_macros.html" import status_badge, duplicate_badge, follow_up_badge %}
 
 {% block title %}Leads — MC College{% endblock %}
 {% block page_title %}Leads{% endblock %}
@@ -23,13 +23,34 @@
       <option value="{{ s }}" {{ 'selected' if s == active_status else '' }}>{{ s }}</option>
     {% endfor %}
   </select>
+  {# Carry the active follow-up filter through a search/status submit. #}
+  {% if active_follow_up %}<input type="hidden" name="follow_up" value="{{ active_follow_up }}" />{% endif %}
   <div class="flex gap-2">
     <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">Filter</button>
-    {% if search or active_status %}
+    {% if search or active_status or active_follow_up %}
       <a href="{{ url_for('dashboard.leads') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Clear</a>
     {% endif %}
   </div>
 </form>
+
+{# ===================== Follow-up quick filters ===================== #}
+{# Toggle links (not a form): clicking re-applies the current search/status
+   with the chosen follow_up filter; clicking the active one clears it. Values
+   come from FOLLOW_UP_FILTERS so links and the service filter never drift. #}
+<div class="mt-3 flex flex-wrap items-center gap-2">
+  <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Follow-up:</span>
+  {% for value, label in follow_up_filters %}
+    {% set base = {} %}
+    {% if search %}{% set _ = base.update({'q': search}) %}{% endif %}
+    {% if active_status %}{% set _ = base.update({'status': active_status}) %}{% endif %}
+    {% set is_active = value == active_follow_up %}
+    {# Active chip links back to itself with no follow_up => toggles off. #}
+    <a href="{{ url_for('dashboard.leads', follow_up=(none if is_active else value), **base) }}"
+       class="rounded-full px-3 py-1 text-xs font-medium transition {{ 'bg-teal-600 text-white' if is_active else 'border border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
 
 {# ============================ Results ============================ #}
 <div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -47,6 +68,8 @@
             <th class="px-5 py-3">City</th>
             <th class="px-5 py-3">Course</th>
             <th class="px-5 py-3">Status</th>
+            <th class="px-5 py-3">Next Follow-up</th>
+            <th class="px-5 py-3">Duplicates</th>
             <th class="px-5 py-3">Received</th>
           </tr>
         </thead>
@@ -60,6 +83,8 @@
               <td class="px-5 py-3 text-slate-600">{{ lead.city or '—' }}</td>
               <td class="px-5 py-3 text-slate-600">{{ lead.course or '—' }}</td>
               <td class="px-5 py-3">{{ status_badge(lead.status) }}</td>
+              <td class="px-5 py-3">{{ follow_up_badge(lead.next_follow_up_at, follow_up_state(lead.next_follow_up_at)) }}</td>
+              <td class="px-5 py-3">{{ duplicate_badge(lead, duplicate_counts.get(lead.id)) }}</td>
               <td class="px-5 py-3 text-slate-500">{{ lead.created_at.strftime('%d %b %Y, %H:%M') }}</td>
             </tr>
           {% endfor %}
@@ -77,6 +102,7 @@
   {% if search %}{% set _ = args.update({'q': search}) %}{% endif %}
   {% if active_status %}{% set _ = args.update({'status': active_status}) %}{% endif %}
   {% if active_period %}{% set _ = args.update({'period': active_period}) %}{% endif %}
+  {% if active_follow_up %}{% set _ = args.update({'follow_up': active_follow_up}) %}{% endif %}
   <nav class="mt-5 flex items-center justify-between" aria-label="Pagination">
     <div class="text-sm text-slate-500">Page {{ pagination.page }} of {{ pagination.pages }}</div>
     <div class="flex gap-1">

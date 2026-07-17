@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% from "dashboard/_macros.html" import status_badge %}
+{% from "dashboard/_macros.html" import status_badge, follow_up_badge %}
 
 {% block title %}{{ lead.name }} — Lead — MC College{% endblock %}
 {% block page_title %}Lead Details{% endblock %}
@@ -96,6 +96,38 @@
         {{ status_form.status(class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
         <button type="submit" class="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">Update status</button>
       </form>
+    </section>
+
+    {# ---- Follow-up ---- #}
+    <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Follow-up</h3>
+      {% if lead.next_follow_up_at %}
+        <div class="mt-3 flex items-center gap-2">
+          {{ follow_up_badge(lead.next_follow_up_at, follow_up_state(lead.next_follow_up_at)) }}
+          <span class="text-sm text-slate-500">{{ lead.next_follow_up_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </div>
+      {% else %}
+        <p class="mt-3 text-sm text-slate-500">No follow-up scheduled.</p>
+      {% endif %}
+
+      {# One form covers both schedule and reschedule: it posts the chosen date
+         to set_follow_up, which decides "scheduled" vs "rescheduled". #}
+      <form method="POST" action="{{ url_for('dashboard.set_follow_up', lead_id=lead.id) }}" class="mt-4 space-y-3">
+        {{ follow_up_form.hidden_tag() }}
+        {{ follow_up_form.next_follow_up_at(class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in follow_up_form.next_follow_up_at.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+        <button type="submit" class="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+          {{ 'Reschedule follow-up' if lead.next_follow_up_at else 'Schedule follow-up' }}
+        </button>
+      </form>
+
+      {# Clearing is a separate POST (no date to validate), mirroring delete. #}
+      {% if lead.next_follow_up_at %}
+        <form method="POST" action="{{ url_for('dashboard.clear_follow_up', lead_id=lead.id) }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Clear follow-up</button>
+        </form>
+      {% endif %}
     </section>
 
     {# ---- Notes ---- #}

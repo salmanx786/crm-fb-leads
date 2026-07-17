@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
-from app.services import dashboard_service
+from app.services import dashboard_service, lead_service, lead_service
 
 
 def _make_lead(app, **overrides):
@@ -102,6 +102,241 @@ def test_period_filter_bounds_by_creation_time(app):
         assert dashboard_service.list_leads(period="today").total == 1
         assert dashboard_service.list_leads(period="week").total == 1
         assert dashboard_service.list_leads().total == 2
+
+
+# --- follow-up service (schedule / reschedule / clear) --------------------
+
+def _fmt(dt):
+    """Minute-precision string, matching lead_service's timeline wording."""
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def test_schedule_follow_up_sets_date_and_records_event(app):
+    lead_id = _make_lead(app, phone="+91 90000 A0001")
+    when = datetime(2026, 7, 25, 10, 30)
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        lead_service.set_follow_up(lead, when)
+
+        refreshed = db.session.get(Lead, lead_id)
+        assert refreshed.next_follow_up_at == when
+
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id, event_type="follow_up_set")
+        ).all()
+        assert len(events) == 1
+        assert events[0].description == f"Follow-up scheduled for {_fmt(when)}"
+
+
+def test_reschedule_follow_up_records_from_to_event(app):
+    lead_id = _make_lead(app, phone="+91 90000 A0002")
+    first = datetime(2026, 7, 25, 9, 0)
+    second = datetime(2026, 7, 28, 15, 0)
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        lead_service.set_follow_up(lead, first)
+        lead_service.set_follow_up(lead, second)
+
+        refreshed = db.session.get(Lead, lead_id)
+        assert refreshed.next_follow_up_at == second
+
+        events = db.session.scalars(
+            select(TimelineEvent)
+            .filter_by(lead_id=lead_id, event_type="follow_up_set")
+            .order_by(TimelineEvent.id)
+        ).all()
+        assert len(events) == 2
+        assert events[1].description == (
+            f"Follow-up rescheduled from {_fmt(first)} to {_fmt(second)}"
+        )
+
+
+def test_clear_follow_up_removes_date_and_records_event(app):
+    lead_id = _make_lead(app, phone="+91 90000 A0003")
+    when = datetime(2026, 7, 25, 10, 30)
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        lead_service.set_follow_up(lead, when)
+        lead_service.clear_follow_up(lead)
+
+        refreshed = db.session.get(Lead, lead_id)
+        assert refreshed.next_follow_up_at is None
+
+        cleared = db.session.scalars(
+            select(TimelineEvent).filter_by(
+                lead_id=lead_id, event_type="follow_up_cleared"
+            )
+        ).all()
+        assert len(cleared) == 1
+        assert cleared[0].description == "Follow-up cleared"
+
+
+def test_set_same_follow_up_value_is_noop(app):
+    lead_id = _make_lead(app, phone="+91 90000 A0004")
+    when = datetime(2026, 7, 25, 10, 30)
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        lead_service.set_follow_up(lead, when)
+        # Submitting the identical value again writes nothing new.
+        lead_service.set_follow_up(lead, when)
+
+        events = db.session.scalars(
+            select(TimelineEvent).filter_by(lead_id=lead_id, event_type="follow_up_set")
+        ).all()
+        assert len(events) == 1
+
+
+def test_clear_follow_up_when_none_is_noop(app):
+    lead_id = _make_lead(app, phone="+91 90000 A0005")
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        lead_service.clear_follow_up(lead)  # nothing scheduled
+        cleared = db.session.scalars(
+            select(TimelineEvent).filter_by(
+                lead_id=lead_id, event_type="follow_up_cleared"
+            )
+        ).all()
+        assert cleared == []
+
+
+# --- follow-up dashboard filters (database-level) -------------------------
+
+def _seed_follow_up_leads(app):
+    """One lead in each follow-up state; returns their ids by state."""
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    ids = {
+        "overdue": _make_lead(
+            app, name="Overdue", phone="+91 90000 B0001",
+            next_follow_up_at=today - timedelta(days=1),
+        ),
+        "today": _make_lead(
+            app, name="Today", phone="+91 90000 B0002",
+            next_follow_up_at=today + timedelta(hours=9),
+        ),
+        "upcoming": _make_lead(
+            app, name="Upcoming", phone="+91 90000 B0003",
+            next_follow_up_at=today + timedelta(days=3),
+        ),
+        "none": _make_lead(
+            app, name="NoFollowUp", phone="+91 90000 B0004",
+            next_follow_up_at=None,
+        ),
+    }
+    return ids
+
+
+def test_overdue_filter_selects_only_past_follow_ups(app):
+    _seed_follow_up_leads(app)
+    with app.app_context():
+        result = dashboard_service.list_leads(follow_up="overdue")
+    assert result.total == 1
+    assert result.items[0].name == "Overdue"
+
+
+def test_today_filter_selects_only_todays_follow_ups(app):
+    _seed_follow_up_leads(app)
+    with app.app_context():
+        result = dashboard_service.list_leads(follow_up="today")
+    assert result.total == 1
+    assert result.items[0].name == "Today"
+
+
+def test_upcoming_filter_selects_only_future_follow_ups(app):
+    _seed_follow_up_leads(app)
+    with app.app_context():
+        result = dashboard_service.list_leads(follow_up="upcoming")
+    assert result.total == 1
+    assert result.items[0].name == "Upcoming"
+
+
+def test_no_follow_up_filter_selects_only_unscheduled(app):
+    _seed_follow_up_leads(app)
+    with app.app_context():
+        result = dashboard_service.list_leads(follow_up="no_follow_up")
+    assert result.total == 1
+    assert result.items[0].name == "NoFollowUp"
+
+
+def test_follow_up_state_classifier_matches_filters(app):
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    assert dashboard_service.follow_up_state(None) is None
+    assert dashboard_service.follow_up_state(today - timedelta(days=1)) == "overdue"
+    assert dashboard_service.follow_up_state(today + timedelta(hours=9)) == "today"
+    assert dashboard_service.follow_up_state(today + timedelta(days=3)) == "upcoming"
+
+
+# --- duplicate detection --------------------------------------------------
+
+def test_duplicate_by_phone(app):
+    """Two submissions sharing a phone are each counted as a group of 2."""
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="First", phone="+91 90000 77777", email="a@example.com"),
+            Lead(name="Second", phone="+91 90000 77777", email="b@example.com"),
+        ])
+        db.session.commit()
+        leads = list(db.session.scalars(select(Lead)))
+
+        counts = dashboard_service.duplicate_counts(leads)
+        assert all(c == 2 for c in counts.values())
+
+        # Drill-down lists both submissions, newest first.
+        matches = dashboard_service.matching_submissions(leads[0])
+        assert len(matches) == 2
+        assert {m.name for m in matches} == {"First", "Second"}
+
+
+def test_duplicate_by_email(app):
+    """Same email but different phones still forms one duplicate group."""
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="First", phone="+91 90000 11111", email="dup@example.com"),
+            Lead(name="Second", phone="+91 90000 22222", email="dup@example.com"),
+        ])
+        db.session.commit()
+        leads = list(db.session.scalars(select(Lead)))
+
+        counts = dashboard_service.duplicate_counts(leads)
+        assert all(c == 2 for c in counts.values())
+
+        matches = dashboard_service.matching_submissions(leads[0])
+        assert len(matches) == 2
+
+
+def test_no_duplicate(app):
+    """Distinct phone and email means a group of just the lead itself."""
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="Alone One", phone="+91 90000 33333", email="one@example.com"),
+            Lead(name="Alone Two", phone="+91 90000 44444", email="two@example.com"),
+        ])
+        db.session.commit()
+        leads = list(db.session.scalars(select(Lead)))
+
+        counts = dashboard_service.duplicate_counts(leads)
+        assert all(c == 1 for c in counts.values())
+
+        matches = dashboard_service.matching_submissions(leads[0])
+        assert len(matches) == 1
+
+
+def test_duplicate_counts_no_double_count_when_phone_and_email_match(app):
+    """A lead matching another on BOTH phone and email counts it once."""
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="First", phone="+91 90000 55555", email="same@example.com"),
+            Lead(name="Second", phone="+91 90000 55555", email="same@example.com"),
+        ])
+        db.session.commit()
+        leads = list(db.session.scalars(select(Lead)))
+
+        counts = dashboard_service.duplicate_counts(leads)
+        assert all(c == 2 for c in counts.values())
+
+
+def test_duplicate_counts_empty_list_is_empty(app):
+    with app.app_context():
+        assert dashboard_service.duplicate_counts([]) == {}
 
 
 # --- seed-demo-data CLI ---------------------------------------------------

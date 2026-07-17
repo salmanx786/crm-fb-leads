@@ -18,3 +18,40 @@
     {{ status }}
   </span>
 {% endmacro %}
+
+{# Duplicate badge. `count` is the size of the submission's duplicate group
+   (see dashboard_service.duplicate_counts); a value of 1 means no duplicates,
+   so nothing renders. Otherwise it links to the drill-down of all matches. #}
+{% macro duplicate_badge(lead, count) %}
+  {% if count and count > 1 %}
+    <a href="{{ url_for('dashboard.lead_duplicates', lead_id=lead.id) }}"
+       class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700 transition hover:bg-rose-200"
+       title="View all matching submissions">
+      Duplicates: {{ count }}
+    </a>
+  {% else %}
+    <span class="text-slate-300">—</span>
+  {% endif %}
+{% endmacro %}
+
+{# Follow-up badge. `state` comes from dashboard_service.follow_up_state and is
+   one of overdue/today/upcoming, or None when nothing is scheduled. Shows the
+   due date alongside a colour that matches the state so the list reads at a
+   glance; renders a dash when there's no follow-up. #}
+{% macro follow_up_badge(value, state) %}
+  {% if state %}
+    {% set palette = {
+      'overdue':  'bg-red-100 text-red-700',
+      'today':    'bg-amber-100 text-amber-700',
+      'upcoming': 'bg-teal-100 text-teal-700',
+    } %}
+    {% set label = {'overdue': 'Overdue', 'today': 'Today', 'upcoming': 'Upcoming'} %}
+    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {{ palette.get(state, 'bg-slate-100 text-slate-700') }}"
+          title="Follow-up due {{ value.strftime('%d %b %Y, %H:%M') }}">
+      {{ label.get(state, state) }}
+      <span class="font-normal opacity-80">{{ value.strftime('%d %b') }}</span>
+    </span>
+  {% else %}
+    <span class="text-slate-300">—</span>
+  {% endif %}
+{% endmacro %}

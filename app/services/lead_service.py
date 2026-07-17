@@ -3,6 +3,7 @@
 Every write goes through here so that side effects (timeline events, field
 normalisation, validation) happen consistently regardless of the caller.
 """
+from datetime import datetime
 from typing import Optional
 
 from app.constants import DEFAULT_LEAD_STATUS, is_valid_status
@@ -160,6 +161,72 @@ def add_note(lead: Lead, body: str, author_id: Optional[int] = None) -> LeadNote
     _record_event(lead, "note_added", "Note added.", author_id)
     db.session.commit()
     return note
+
+
+# --- follow-ups -----------------------------------------------------------
+# A follow-up is just a datetime on the lead. Scheduling and rescheduling are
+# the same write (set the column); only the timeline wording differs, so both
+# go through set_follow_up rather than a separate schedule/reschedule pair.
+
+_FOLLOW_UP_FMT = "%Y-%m-%d %H:%M"
+
+
+def _fmt_follow_up(value: Optional[datetime]) -> str:
+    """Render a follow-up datetime for timeline messages (minute precision)."""
+    return value.strftime(_FOLLOW_UP_FMT) if value else ""
+
+
+def set_follow_up(
+    lead: Lead, when: datetime, actor_id: Optional[int] = None
+) -> Lead:
+    """Schedule or reschedule a lead's follow-up date.
+
+    Records "scheduled" when there was none, "rescheduled from…to…" when the
+    date moves, and is a no-op (no write, no timeline entry) when the submitted
+    value matches the current one — mirroring change_status' idempotence.
+    """
+    if when is None:
+        raise LeadValidationError({"next_follow_up_at": "A follow-up date is required."})
+
+    old = lead.next_follow_up_at
+    # Compare at minute precision, the resolution staff actually pick and the
+    # resolution the timeline records, so a same-value submit stays a no-op.
+    if old is not None and _fmt_follow_up(old) == _fmt_follow_up(when):
+        return lead  # unchanged; don't clutter the timeline
+
+    lead.next_follow_up_at = when
+    if old is None:
+        description = f"Follow-up scheduled for {_fmt_follow_up(when)}"
+    else:
+        description = (
+            f"Follow-up rescheduled from {_fmt_follow_up(old)} "
+            f"to {_fmt_follow_up(when)}"
+        )
+    _record_event(lead, "follow_up_set", description, actor_id)
+    db.session.commit()
+    logger.info(
+        "Lead follow-up set: id=%s at=%s by user=%s",
+        lead.id, _fmt_follow_up(when), actor_id if actor_id is not None else "-",
+    )
+    return lead
+
+
+def clear_follow_up(lead: Lead, actor_id: Optional[int] = None) -> Lead:
+    """Remove a lead's follow-up date, recording the change.
+
+    No-op (no write, no timeline entry) when there is nothing scheduled.
+    """
+    if lead.next_follow_up_at is None:
+        return lead  # nothing to clear
+
+    lead.next_follow_up_at = None
+    _record_event(lead, "follow_up_cleared", "Follow-up cleared", actor_id)
+    db.session.commit()
+    logger.info(
+        "Lead follow-up cleared: id=%s by user=%s",
+        lead.id, actor_id if actor_id is not None else "-",
+    )
+    return lead
 
 
 def delete_lead(lead: Lead) -> None:

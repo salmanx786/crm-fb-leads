@@ -27,6 +27,11 @@ class Lead(BaseModel):
     # app.constants.LEAD_STATUSES so we can add stages without a migration.
     status = db.Column(db.String(32), default="New", nullable=False)
 
+    # When the next follow-up call/action is due. Nullable: a lead with no
+    # scheduled follow-up is a first-class state ("No Follow-up" filter). Set
+    # and cleared only through lead_service so every change is timelined.
+    next_follow_up_at = db.Column(db.DateTime, nullable=True)
+
     # Indexes for the columns the dashboard filters and sorts on. The
     # composite (status, created_at) index backs the common "leads in a given
     # stage, newest first" query the listing view runs.
@@ -37,6 +42,9 @@ class Lead(BaseModel):
         db.Index("ix_leads_city", "city"),
         db.Index("ix_leads_course", "course"),
         db.Index("ix_leads_status_created_at", "status", "created_at"),
+        # Backs the follow-up dashboard filters (overdue/today/upcoming), which
+        # all range-scan this column; NULLs serve the "No Follow-up" filter.
+        db.Index("ix_leads_next_follow_up_at", "next_follow_up_at"),
     )
 
     # Related records. Deleting a lead cleans up its notes and timeline.

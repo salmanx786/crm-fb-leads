@@ -19,7 +19,16 @@ from app.constants import LEAD_STATUSES
 from app.services import dashboard_service, lead_service
 from app.services.lead_service import LeadValidationError
 
-from .forms import NoteForm, StatusForm
+from .forms import FollowUpForm, NoteForm, StatusForm
+
+# Follow-up filter options surfaced as toggle links on the leads list.
+# (value, label) — value matches dashboard_service.list_leads(follow_up=...).
+FOLLOW_UP_FILTERS = [
+    ("overdue", "Overdue"),
+    ("today", "Today"),
+    ("upcoming", "Upcoming"),
+    ("no_follow_up", "No Follow-up"),
+]
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
@@ -43,18 +52,38 @@ def leads():
     search = request.args.get("q", type=str)
     status = request.args.get("status", type=str)
     period = request.args.get("period", type=str)
+    follow_up = request.args.get("follow_up", type=str)
 
     pagination = dashboard_service.list_leads(
-        page=page, search=search, status=status, period=period
+        page=page, search=search, status=status, period=period, follow_up=follow_up
     )
     return render_template(
         "dashboard/leads.html",
         pagination=pagination,
         leads=pagination.items,
+        duplicate_counts=dashboard_service.duplicate_counts(pagination.items),
+        follow_up_state=dashboard_service.follow_up_state,
         statuses=LEAD_STATUSES,
+        follow_up_filters=FOLLOW_UP_FILTERS,
         search=search or "",
         active_status=status or "",
         active_period=period or "",
+        active_follow_up=follow_up or "",
+    )
+
+
+@dashboard_bp.route("/leads/<int:lead_id>/duplicates")
+@login_required
+def lead_duplicates(lead_id: int):
+    """List every submission sharing this lead's phone or email."""
+    lead = lead_service.get_lead(lead_id)
+    if lead is None:
+        abort(404)
+
+    return render_template(
+        "dashboard/lead_duplicates.html",
+        lead=lead,
+        submissions=dashboard_service.matching_submissions(lead),
     )
 
 
@@ -71,6 +100,8 @@ def lead_detail(lead_id: int):
         lead=lead,
         status_form=StatusForm(status=lead.status),
         note_form=NoteForm(),
+        follow_up_form=FollowUpForm(next_follow_up_at=lead.next_follow_up_at),
+        follow_up_state=dashboard_service.follow_up_state,
     )
 
 
@@ -117,6 +148,42 @@ def add_note(lead_id: int):
     else:
         flash("Note cannot be empty.", "error")
 
+    return redirect(url_for("dashboard.lead_detail", lead_id=lead_id))
+
+
+@dashboard_bp.route("/leads/<int:lead_id>/follow-up", methods=["POST"])
+@login_required
+def set_follow_up(lead_id: int):
+    """Schedule or reschedule a lead's follow-up date via LeadService."""
+    lead = lead_service.get_lead(lead_id)
+    if lead is None:
+        abort(404)
+
+    form = FollowUpForm()
+    if form.validate_on_submit():
+        try:
+            lead_service.set_follow_up(
+                lead, form.next_follow_up_at.data, actor_id=_current_user_id()
+            )
+            flash("Follow-up saved.", "success")
+        except LeadValidationError as exc:
+            flash("; ".join(exc.errors.values()), "error")
+    else:
+        flash("Please choose a valid follow-up date and time.", "error")
+
+    return redirect(url_for("dashboard.lead_detail", lead_id=lead_id))
+
+
+@dashboard_bp.route("/leads/<int:lead_id>/follow-up/clear", methods=["POST"])
+@login_required
+def clear_follow_up(lead_id: int):
+    """Remove a lead's follow-up date via LeadService."""
+    lead = lead_service.get_lead(lead_id)
+    if lead is None:
+        abort(404)
+
+    lead_service.clear_follow_up(lead, actor_id=_current_user_id())
+    flash("Follow-up cleared.", "success")
     return redirect(url_for("dashboard.lead_detail", lead_id=lead_id))
 
 

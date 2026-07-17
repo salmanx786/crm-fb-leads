@@ -145,3 +145,52 @@ def test_add_note_persists_and_logs_event(client, admin, lead, app):
         ).all()
         types = {e.event_type for e in events}
         assert "note_added" in types
+
+
+# --- duplicate badge + drill-down -----------------------------------------
+
+def test_leads_list_shows_duplicate_badge(client, admin, app):
+    """Two submissions with the same phone surface a 'Duplicates: 2' badge."""
+    with app.app_context():
+        db.session.add_all([
+            Lead(name="Dup A", phone="+91 90000 90909", email="a@x.com"),
+            Lead(name="Dup B", phone="+91 90000 90909", email="b@x.com"),
+        ])
+        db.session.commit()
+
+    _login(client)
+    html = client.get("/dashboard/leads").get_data(as_text=True)
+    assert "Duplicates: 2" in html
+
+
+def test_duplicates_drill_down_lists_matching_submissions(client, admin, app):
+    """The drill-down page renders every matching submission and its columns."""
+    with app.app_context():
+        first = Lead(
+            name="Dup A", phone="+91 90000 80808", email="a@x.com",
+            course="MBA", utm_source="google",
+        )
+        db.session.add_all([
+            first,
+            Lead(name="Dup B", phone="+91 90000 80808", email="b@x.com", course="BCA"),
+        ])
+        db.session.commit()
+        first_id = first.id
+
+    _login(client)
+    resp = client.get(f"/dashboard/leads/{first_id}/duplicates")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    # The required columns and both submissions' data are present. The table
+    # keys on Date/Status/Course/UTM/Assigned (not Name), so assert on those.
+    assert "Submission Date" in html
+    assert "UTM Source" in html
+    assert "Assigned User" in html
+    assert "google" in html          # first submission's utm_source
+    assert "MBA" in html and "BCA" in html  # both submissions' courses
+    assert "2 submissions" in html
+
+
+def test_duplicates_drill_down_404_for_unknown_lead(client, admin):
+    _login(client)
+    assert client.get("/dashboard/leads/999999/duplicates").status_code == 404
