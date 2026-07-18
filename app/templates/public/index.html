@@ -9,7 +9,19 @@
   {% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
   <style>
     /* Respect users who prefer reduced motion for the autoplay video/scroll. */
-    html { scroll-padding-top: 64px; } /* keep #anchors clear of the sticky trust bar */
+    html { scroll-padding-top: 84px; } /* keep #anchors clear of the sticky trust bar */
+
+    /* Branded hero band (addendum 3 §2/§3): full-width navy gradient with a
+       soft radial glow so the first screen reads as finished and branded,
+       never plain white/gray behind a lone card. Text sits on navy, so all
+       copy in the band is light. */
+    .hero-band {
+      background-color: #1a365d;
+      background-image:
+        radial-gradient(1200px 480px at 78% -8%, rgba(255,193,7,0.16), transparent 60%),
+        radial-gradient(900px 520px at 0% 100%, rgba(255,255,255,0.10), transparent 55%),
+        linear-gradient(180deg, #1a365d 0%, #17304f 55%, #142942 100%);
+    }
   </style>
 {% endblock %}
 
@@ -22,28 +34,35 @@
    on a white/light panel with a neutral gray divider between them.
    Images are expected at app/static/img/logos/ (see app/static/README.md).
    ===================================================================== #}
-{% macro logo_pair(height="h-9", show_line=false) %}
-  {# Logos are REQUIRED slots (no fallback) — resolved from the CMS. #}
+{% macro logo_pair(height="h-9", divider="h-8") %}
+  {# Logos are REQUIRED slots (no fallback) — resolved from the CMS.
+     `height` is applied to both <img>s so they scale by height only and stay
+     equal to each other; the divider height is passed in so it scales with
+     the logos rather than staying a fixed thin line. #}
   <div class="flex items-center justify-center gap-3">
     {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
          alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto">{% endif %}
-    <span class="h-8 w-px bg-[#D9D9D9]"></span>
+    <span class="{{ divider }} w-px bg-[#D9D9D9]"></span>
     {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
          alt="Jinnah Sindh Medical University (JSMU)" class="{{ height }} w-auto">{% endif %}
   </div>
 {% endmacro %}
 
 {# ============================ A. Sticky Trust Bar ============================ #}
-<div class="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white">
-  <div class="mx-auto flex h-12 max-w-3xl items-center justify-center px-4">
-    {{ logo_pair(height="h-8") }}
+{# Logos enlarged (addendum 3 §1) so they read as a credibility anchor, not an
+   afterthought — bar height grows to match. #}
+<div class="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+  {# Bar grows to fit the larger logos (mobile 42px / desktop 60px) with
+     breathing room — logos are sized by height only via the macro. #}
+  <div class="mx-auto flex h-[56px] max-w-3xl items-center justify-center px-4 sm:h-[76px]">
+    {{ logo_pair(height="h-[42px] sm:h-[60px]", divider="h-[34px] sm:h-[48px]") }}
   </div>
 </div>
 
 {# ---- Flash messages (confirmation / errors) ---- #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="fixed inset-x-0 top-14 z-50 mx-auto max-w-md px-4">
+    <div class="fixed inset-x-0 top-[60px] z-50 mx-auto max-w-md px-4 sm:top-20">
       {% for category, message in messages %}
         {% set tone = 'bg-green-50 text-green-800 border-green-200' if category == 'success'
                       else 'bg-red-50 text-red-800 border-red-200' if category in ['error', 'danger']
@@ -54,21 +73,70 @@
   {% endif %}
 {% endwith %}
 
-<main class="pt-12">
+<main class="pt-[56px] sm:pt-[76px]">
 
 {# ============================ Micro-Hero + Form ============================ #}
-{# Extra bottom padding (pb-36) keeps the form's lower fields and Submit button
-   clear of the fixed WhatsApp bubble and the sticky "Continue" bar, so neither
-   ever overlaps an active input (addendum 2 §1). #}
-<section id="apply" class="bg-[#f8f9fa] px-4 pb-36 pt-6">
-  <div class="mx-auto max-w-md">
-    <h1 class="text-center text-2xl font-extrabold leading-snug text-[#1a365d] sm:text-3xl">
-      {{ c.hero_headline }}
-    </h1>
+{# The fixed WhatsApp bubble and sticky "Continue" bar are hidden while the form
+   card is on screen (see the IntersectionObserver in scripts, addendum 3 §6), so
+   the form no longer needs a large bottom pad to avoid overlap — spacing is now
+   tightened (addendum 3 §5). #}
+{# Full-width branded navy band fills the whole first screen (addendum 3 §2/§3):
+   no more plain white/gray with a lone card. A subtle gradient + radial glow
+   gives the hero real visual weight edge-to-edge, while the form card stays
+   white and constrained. On desktop the band splits into headline/trust copy
+   (left) + form card (right) so the width is never left empty.
 
-    {# ---------------- Multi-step form ---------------- #}
-    <form id="admissionForm" method="POST" action="{{ url_for('public.submit_admission') }}"
-          class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+   Hero Background Photo (addendum 4): when a photo is uploaded via the CMS
+   (c.hero_bg), it fills the band full-width with a semi-transparent navy
+   overlay so the white headline and the form card stay readable while the real
+   campus/affiliation signage in the photo shows faintly through as trust
+   texture. When empty, c.hero_bg is None and the section keeps the plain navy
+   band below — never a placeholder or a broken image. #}
+<section id="apply" class="hero-band relative overflow-hidden px-4 pb-12 pt-8 sm:pb-16 sm:pt-10 lg:pb-20">
+  {% if c.hero_bg %}
+    {# Photo layer + dimming navy overlay. These use z-0 (not a negative z):
+       the section doesn't create its own stacking context, so a negative
+       z-index would drop the image behind the section's opaque .hero-band
+       background and hide it. At z-0 the image paints over that background,
+       the overlay paints over the image, and the content (z-10) sits on top.
+       eager/high priority: above the fold, loads on first paint for ad traffic. #}
+    <img src="{{ c.hero_bg }}" alt="MC College campus" fetchpriority="high"
+         class="absolute inset-0 z-0 h-full w-full object-cover">
+    <div class="absolute inset-0 z-0 bg-[#1a365d]/70"></div>
+  {% endif %}
+  <div class="relative z-10 mx-auto max-w-5xl">
+    <div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-12">
+
+      {# ---- Headline + trust copy (left on desktop, top on mobile) ---- #}
+      <div class="text-center lg:pt-6 lg:text-left">
+        <h1 class="text-2xl font-extrabold leading-snug text-white sm:text-3xl lg:text-4xl">
+          {{ c.hero_headline }}
+        </h1>
+        <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-200 lg:mx-0 lg:text-base">
+          Affordable, HEC-recognized programs awarded under Jinnah Sindh Medical University.
+          Start your application in under a minute.
+        </p>
+
+        {# Trust points — real content that fills the desktop left column
+           instead of empty space. Hidden on small screens to keep the mobile
+           first screen tight around the form. #}
+        <ul class="mt-6 hidden space-y-3 text-left lg:block">
+          {% for point in [
+            "Fees kept low — with Mother & Child Foundation support",
+            "Degree awarded under JSMU — recognized & verifiable",
+            "DPT (5 yrs) & BSMT (4 yrs) — apply in minutes"
+          ] %}
+            <li class="flex items-start gap-3 text-sm text-slate-100">
+              <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">✓</span>
+              <span>{{ point }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      {# ---------------- Multi-step form ---------------- #}
+      <form id="admissionForm" method="POST" action="{{ url_for('public.submit_admission') }}"
+            class="mx-auto mt-6 max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl lg:mt-0 lg:max-w-none">
       {{ form.hidden_tag() }}
 
       {# Progress indicator #}
@@ -115,8 +183,11 @@
         {% for error in form.specialization.errors %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endfor %}
 
         {# ---- B. Highest-value trust placement: right below the choice ---- #}
+        {# Credibility-card logos are a dedicated trust moment, so they are set
+           visibly larger than the top bar: 58px mobile / 76px desktop, by
+           exact height only (divider scales with them). #}
         <div class="mt-6 rounded-xl bg-[#f8f9fa] p-4">
-          {{ logo_pair(height="h-9") }}
+          {{ logo_pair(height="h-[58px] sm:h-[76px]", divider="h-[46px] sm:h-[60px]") }}
           <p class="mt-3 text-center text-xs text-[#333333]">
             MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
           </p>
@@ -206,6 +277,8 @@
         </div>
       </div>
     </form>
+
+    </div>{# /lg:grid #}
   </div>
 </section>
 
@@ -240,15 +313,12 @@
   <div class="mx-auto max-w-lg text-center">
     <h2 class="text-xl font-bold text-[#1a365d]">Recognized &amp; Affiliated</h2>
 
-    <div class="mt-5 flex items-center justify-center gap-3">
-      {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
-           alt="MC College of Medical &amp; Allied Health Sciences" class="h-16 w-auto">{% endif %}
-      <span class="text-sm font-semibold text-[#333333]">Affiliated with</span>
-      {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
-           alt="Jinnah Sindh Medical University (JSMU)" class="h-16 w-auto">{% endif %}
-    </div>
+    {# Bare logo row removed here (addendum 3 §4): it was a near-duplicate of the
+       credibility-card logos shown seconds earlier in the hero. The recognition
+       proof now leads with real explanatory text + the two JSMU verification
+       links below — the logos live in the trust bar and credibility card. #}
 
-    <p class="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[#333333]">
+    <p class="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#333333]">
       MC College of Medical &amp; Allied Health Sciences is affiliated with
       <strong>Jinnah Sindh Medical University (JSMU)</strong> and the
       <strong>Sindh Medical Faculty</strong>. That means your DPT or BSMT degree is
@@ -433,10 +503,15 @@
   Continue Application — <span id="continueStep">Step 2 of 3</span>
 </button>
 
-{# WhatsApp bubble — always visible. #}
-<a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener"
+{# WhatsApp bubble (addendum 3 §6 — overlap fix). The form card spans almost the
+   full mobile width, so a fixed bottom-right bubble unavoidably crossed the
+   card's corner while the form was on screen. It is now hidden whenever the
+   form is in view and revealed once the user scrolls past it (same observer as
+   the Continue bar), so it never overlaps the card or active fields on any
+   screen size. It sits at bottom-24 to clear the Continue bar when both show. #}
+<a id="whatsappBubble" href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener"
    aria-label="Chat with us on WhatsApp"
-   class="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] shadow-lg transition hover:scale-105">
+   class="fixed bottom-24 right-4 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25d366] shadow-lg transition hover:scale-105">
   <svg class="h-8 w-8 fill-white" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/>
   </svg>
@@ -476,6 +551,7 @@
   const courseInput = form.querySelector('#course');
   const specInput = form.querySelector('#specialization');
   const continueBar = document.getElementById('continueBar');
+  const whatsappBubble = document.getElementById('whatsappBubble');
   const continueStep = document.getElementById('continueStep');
   const applySection = document.getElementById('apply');
 
@@ -605,11 +681,17 @@
     });
   });
 
-  // ---- Sticky "Continue Application" bar: show when form scrolled out of view ----
+  // ---- Sticky bottom UI: show only when the form (card) is scrolled out of view ----
+  // The WhatsApp bubble follows the same rule as the Continue bar so it can
+  // never overlap the form card or its active fields (addendum 3 §6). The
+  // Continue bar additionally waits until Step 1 has been answered.
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      const show = started && !entry.isIntersecting;
-      continueBar.classList.toggle('hidden', !show);
+      const formVisible = entry.isIntersecting;
+      continueBar.classList.toggle('hidden', !(started && !formVisible));
+      // Bubble uses `flex` when shown, so toggle both classes together.
+      whatsappBubble.classList.toggle('hidden', formVisible);
+      whatsappBubble.classList.toggle('flex', !formVisible);
     });
   }, { threshold: 0 });
   observer.observe(applySection);

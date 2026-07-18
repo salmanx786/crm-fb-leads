@@ -13,6 +13,8 @@
     <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder if empty</span>
   {% elif fallback == 'hide' %}
     <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">Hidden if empty</span>
+  {% elif fallback == 'optional' %}
+    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">Optional</span>
   {% endif %}
 {% endmacro %}
 
@@ -82,12 +84,14 @@
               {% else %}
                 <form method="POST" action="{{ url_for('content.upload_media_slot', key=slot.key) }}"
                       enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2"
-                      {% if slot.kind == VIDEO %}data-video-form{% endif %}>
+                      {% if slot.kind == VIDEO %}data-video-form{% endif %}
+                      {% if slot.key == 'hero_bg' %}data-image-compress-form{% endif %}>
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="file" name="file"
                          accept="{{ 'video/*' if slot.kind == VIDEO else 'image/*' }}"
                          class="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-700"
-                         {% if slot.kind == VIDEO %}data-video-input{% endif %} required>
+                         {% if slot.kind == VIDEO %}data-video-input{% endif %}
+                         {% if slot.key == 'hero_bg' %}data-image-compress-input{% endif %} required>
                   <button type="submit" class="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">
                     {{ 'Replace' if raw(slot.key) else 'Upload' }}
                   </button>
@@ -102,8 +106,15 @@
 
             {# ---- Thumbnail preview of current value ---- #}
             {% if slot.kind == IMAGE %}
-              <img src="{{ resolve(slot.key) }}" alt="{{ slot.label }} preview"
-                   class="h-20 w-32 rounded-lg border border-slate-200 bg-slate-50 object-contain p-1">
+              {% set preview = resolve(slot.key) %}
+              {% if preview %}
+                <img src="{{ preview }}" alt="{{ slot.label }} preview"
+                     class="h-20 w-32 rounded-lg border border-slate-200 bg-slate-50 object-contain p-1">
+              {% else %}
+                {# Optional image with no upload: show an empty state, never a
+                   broken image icon. #}
+                <div class="flex h-20 w-32 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">No image</div>
+              {% endif %}
             {% elif slot.kind == VIDEO %}
               {% if raw(slot.key) %}
                 <video src="{{ resolve(slot.key) }}" muted class="h-20 w-32 rounded-lg border border-slate-200 bg-black object-cover" preload="metadata"></video>
@@ -248,6 +259,81 @@
       video.addEventListener('error', finish);
       // Safety net: never hang the form if the video never fires events.
       setTimeout(finish, 4000);
+    });
+  });
+})();
+</script>
+
+<script>
+/* Client-side image compression for the Hero Background Photo.
+   This image loads immediately on page load (behind the fold-1 form) and
+   directly affects ad-traffic load speed, so we never store the raw
+   full-resolution original. On submit we downscale to max 1600px wide and
+   re-encode as WebP (JPEG fallback) at ~0.8 quality in a <canvas>, then submit
+   the compressed blob in place of the original file. If anything fails, we fall
+   back to uploading the original so the admin is never blocked. */
+(function () {
+  const MAX_WIDTH = 1600;
+  const QUALITY = 0.8;
+
+  document.querySelectorAll('[data-image-compress-form]').forEach(function (form) {
+    const input = form.querySelector('[data-image-compress-input]');
+    if (!input) return;
+
+    form.addEventListener('submit', function (e) {
+      const file = input.files && input.files[0];
+      // Only compress raster images; skip SVGs (vector, already tiny) and the
+      // Remove button (formaction bypasses this handler's intent).
+      if (!file || !file.type.startsWith('image/') || file.type === 'image/svg+xml') return;
+      if (form.dataset.compressed === 'done') return;
+
+      e.preventDefault();
+
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      const proceedWithOriginal = function () {
+        form.dataset.compressed = 'done';
+        form.submit();
+      };
+
+      img.onload = function () {
+        try {
+          const scale = Math.min(1, MAX_WIDTH / img.naturalWidth);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Prefer WebP; browsers that can't encode it return a PNG data URL,
+          // so we detect support and fall back to JPEG for broad compatibility.
+          const canWebp = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+          const type = canWebp ? 'image/webp' : 'image/jpeg';
+          const ext = canWebp ? 'webp' : 'jpg';
+
+          canvas.toBlob(function (blob) {
+            URL.revokeObjectURL(url);
+            if (!blob) { proceedWithOriginal(); return; }
+            try {
+              const dt = new DataTransfer();
+              dt.items.add(new File([blob], 'hero-bg.' + ext, { type: type }));
+              input.files = dt.files;
+            } catch (_) { /* keep original file if DataTransfer is unavailable */ }
+            form.dataset.compressed = 'done';
+            form.submit();
+          }, type, QUALITY);
+        } catch (_) {
+          URL.revokeObjectURL(url);
+          proceedWithOriginal();
+        }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); proceedWithOriginal(); };
+      img.src = url;
+
+      // Safety net: never hang the form if image events never fire.
+      setTimeout(function () {
+        if (form.dataset.compressed !== 'done') proceedWithOriginal();
+      }, 4000);
     });
   });
 })();

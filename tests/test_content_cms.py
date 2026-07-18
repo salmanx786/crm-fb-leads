@@ -95,6 +95,30 @@ def test_hero_headline_defaults_and_is_editable(app):
     assert content_service.resolve_slot("hero_headline") == "Custom Headline"
 
 
+def test_hero_bg_optional_falls_back_to_navy_not_placeholder(auth):
+    # Optional image slot: empty resolves to None (page uses its navy band),
+    # never the branded placeholder, and it doesn't block go-live.
+    assert content_service.resolve_slot("hero_bg") is None
+    assert not any(
+        s.key == "hero_bg" for s in content_service.missing_required_slots()
+    )
+    page = auth.get("/").get_data(as_text=True)
+    assert "MC College campus" not in page  # no photo layer rendered when empty
+
+    # Once uploaded, it resolves to the file and appears behind the hero.
+    auth.post(
+        "/dashboard/content/slot/hero_bg/media",
+        data={"csrf_token": _dash_csrf(auth), "file": _png()},
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    stored = content_service.get_raw("hero_bg")
+    assert stored and stored.startswith("uploads/hero_bg/")
+    with auth.application.test_request_context():
+        assert content_service.resolve_slot("hero_bg").endswith(stored)
+    assert "MC College campus" in auth.get("/").get_data(as_text=True)
+
+
 # --- media + text slot editing via the dashboard --------------------------
 
 def test_upload_media_slot_shows_on_public_page(auth):

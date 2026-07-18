@@ -33,6 +33,9 @@ from app.models import FaqItem, GalleryItem, SiteContent
 REQUIRED = "required"        # page cannot go live without it; no fallback
 PLACEHOLDER = "placeholder"  # show branded placeholder until real upload
 HIDE = "hide"                # hide the whole section when empty
+OPTIONAL = "optional"        # no asset when empty; the page applies its own
+                             # design fallback (e.g. hero → plain navy band).
+                             # Never shows a placeholder or a broken image.
 
 # Slot "kinds" — determines the upload/validation + how the value is stored.
 KIND_IMAGE = "image"
@@ -86,6 +89,11 @@ SECTIONS: list[Section] = [
         Slot("hero_headline", "Hero Headline", KIND_TEXT, PLACEHOLDER,
              default="Apply for DPT or BSMT — Affordable, HEC Recognized.",
              help_text="Shown at the top of the page. Never blank."),
+        Slot("hero_bg", "Hero Background Photo", KIND_IMAGE, OPTIONAL,
+             help_text="Optional campus/exterior photo shown behind the hero. "
+                       "If empty, the hero uses the plain navy background — no "
+                       "placeholder image. A dimmed navy overlay keeps the "
+                       "headline and form readable over the photo."),
     ]),
     Section("video", "Principal's Video", [
         Slot("principal_video", "Principal's Video", KIND_VIDEO, HIDE,
@@ -272,6 +280,8 @@ def resolve_slot(key: str) -> Optional[str]:
             return _resolved_url(raw)
         if slot.fallback == PLACEHOLDER:
             return _resolved_url(PLACEHOLDER_IMAGE)
+        # REQUIRED / HIDE / OPTIONAL with no upload: no asset. The page decides
+        # what to render (OPTIONAL hero → plain navy band, never a placeholder).
         return None
     if slot.kind == KIND_VIDEO:
         return _resolved_url(raw) if raw else None
