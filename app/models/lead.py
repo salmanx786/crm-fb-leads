@@ -15,6 +15,25 @@ class Lead(BaseModel):
     course = db.Column(db.String(120), nullable=True)
     message = db.Column(db.Text, nullable=True)
 
+    # Program selection (Step 1). `course` holds the program label (DPT / BSMT);
+    # `specialization` holds the BSMT track (Clinical Laboratory Sciences /
+    # Radiological Imaging) and is null for DPT.
+    specialization = db.Column(db.String(120), nullable=True)
+
+    # Guardian / contact (Step 3)
+    guardian_name = db.Column(db.String(120), nullable=True)
+    guardian_phone = db.Column(db.String(20), nullable=True)
+    address = db.Column(db.String(512), nullable=True)
+
+    # Academic qualifications (Step 2)
+    matric_board = db.Column(db.String(120), nullable=True)
+    matric_year = db.Column(db.String(10), nullable=True)
+    matric_marks = db.Column(db.String(30), nullable=True)
+    inter_board = db.Column(db.String(120), nullable=True)
+    inter_year = db.Column(db.String(10), nullable=True)
+    inter_marks = db.Column(db.String(30), nullable=True)
+    inter_group = db.Column(db.String(60), nullable=True)  # Pre-Medical / Other
+
     # Attribution / tracking
     utm_source = db.Column(db.String(120), nullable=True)
     utm_medium = db.Column(db.String(120), nullable=True)

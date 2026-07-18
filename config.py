@@ -73,6 +73,12 @@ class Config:
     # --- Pagination -----------------------------------------------------
     LEADS_PER_PAGE = int(os.environ.get("LEADS_PER_PAGE", "20"))
 
+    # --- Media uploads (admin CMS) --------------------------------------
+    # Cap upload size so a large file can't exhaust memory/disk. Applies to
+    # the whole request body; videos are the practical driver here.
+    # Default 64 MB — enough for a compressed 30–60s H.264 clip.
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "64")) * 1024 * 1024
+
     # --- Session cookies ------------------------------------------------
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

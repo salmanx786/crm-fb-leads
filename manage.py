@@ -14,8 +14,12 @@ app = create_app()
 @app.cli.command("init-db")
 def init_db() -> None:
     """Create all tables directly (quick local bootstrap without migrations)."""
+    from app.services import content_service
+
     with app.app_context():
         db.create_all()
+        # Seed default, editable FAQ content so the CMS isn't empty on first run.
+        content_service.seed_defaults()
     click.echo("Database tables created.")
 
 

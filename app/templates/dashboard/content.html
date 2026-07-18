@@ -1,0 +1,255 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Site Content — MC College{% endblock %}
+
+{% set IMAGE = 'image' %}
+{% set VIDEO = 'video' %}
+{% set TEXT = 'text' %}
+{% set URL = 'url' %}
+
+{% macro rule_badge(fallback) %}
+  {% if fallback == 'required' %}
+    <span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">Required</span>
+  {% elif fallback == 'placeholder' %}
+    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder if empty</span>
+  {% elif fallback == 'hide' %}
+    <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">Hidden if empty</span>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Site Content</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      Upload, replace, or remove every piece of media and text on the landing page.
+      Sections are ordered top-to-bottom to match the live page.
+    </p>
+  </div>
+
+  {# ---- Launch-readiness warning (required slots) ---- #}
+  {% if missing_required %}
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <p class="font-semibold">The page is not ready to go live.</p>
+      <p class="mt-1">These required items must be uploaded first:</p>
+      <ul class="mt-2 list-inside list-disc">
+        {% for slot in missing_required %}<li>{{ slot.label }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% else %}
+    <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+      All required items are in place. The page is ready to go live.
+    </div>
+  {% endif %}
+
+  {# =================================================================== #}
+  {% for section in sections %}
+    <section id="{{ section.key }}" class="scroll-mt-20 rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ section.title }}</h2>
+        {% if section.hide_when_empty %}
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Section hidden on page when empty</span>
+        {% endif %}
+      </div>
+
+      <div class="space-y-5 p-5">
+
+        {# ---------- Fixed single-value slots ---------- #}
+        {% for slot in section.slots %}
+          <div class="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-semibold text-slate-800">{{ slot.label }}</span>
+                {{ rule_badge(slot.fallback) }}
+              </div>
+              {% if slot.help_text %}<p class="mt-0.5 text-xs text-slate-500">{{ slot.help_text }}</p>{% endif %}
+
+              {# ---- TEXT / URL slot ---- #}
+              {% if slot.kind in [TEXT, URL] %}
+                <form method="POST" action="{{ url_for('content.save_text_slot', key=slot.key) }}" class="mt-2 flex gap-2">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if slot.kind == URL %}
+                    <input type="url" name="value" value="{{ raw(slot.key) or slot.default or '' }}"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="https://…">
+                  {% else %}
+                    <input type="text" name="value" value="{{ raw(slot.key) or slot.default or '' }}"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  {% endif %}
+                  <button type="submit" class="whitespace-nowrap rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Save</button>
+                </form>
+
+              {# ---- MEDIA slot (image/video) ---- #}
+              {% else %}
+                <form method="POST" action="{{ url_for('content.upload_media_slot', key=slot.key) }}"
+                      enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2"
+                      {% if slot.kind == VIDEO %}data-video-form{% endif %}>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="file" name="file"
+                         accept="{{ 'video/*' if slot.kind == VIDEO else 'image/*' }}"
+                         class="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-700"
+                         {% if slot.kind == VIDEO %}data-video-input{% endif %} required>
+                  <button type="submit" class="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+                    {{ 'Replace' if raw(slot.key) else 'Upload' }}
+                  </button>
+                  {% if raw(slot.key) %}
+                    <button type="submit" formaction="{{ url_for('content.clear_media_slot', key=slot.key) }}"
+                            formnovalidate
+                            class="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Remove</button>
+                  {% endif %}
+                </form>
+              {% endif %}
+            </div>
+
+            {# ---- Thumbnail preview of current value ---- #}
+            {% if slot.kind == IMAGE %}
+              <img src="{{ resolve(slot.key) }}" alt="{{ slot.label }} preview"
+                   class="h-20 w-32 rounded-lg border border-slate-200 bg-slate-50 object-contain p-1">
+            {% elif slot.kind == VIDEO %}
+              {% if raw(slot.key) %}
+                <video src="{{ resolve(slot.key) }}" muted class="h-20 w-32 rounded-lg border border-slate-200 bg-black object-cover" preload="metadata"></video>
+              {% else %}
+                <div class="flex h-20 w-32 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-400">No video</div>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        {# ---------- Gallery (repeatable) ---------- #}
+        {% if section.key == 'gallery' %}
+          <form method="POST" action="{{ url_for('content.add_gallery') }}"
+                enctype="multipart/form-data" class="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                data-video-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p class="text-sm font-semibold text-slate-700">Add a photo or short video</p>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <input type="file" name="file" accept="image/*,video/*" data-video-input required
+                     class="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-700">
+              <input type="text" name="caption" placeholder="Caption (optional)"
+                     class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <button type="submit" class="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Add</button>
+            </div>
+          </form>
+
+          {% if gallery %}
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {% for item in gallery %}
+                <div class="group relative overflow-hidden rounded-lg border border-slate-200">
+                  {% if item.media_type == 'video' %}
+                    <video src="{{ url_for('static', filename=item.file_path) }}"
+                           {% if item.poster_path %}poster="{{ url_for('static', filename=item.poster_path) }}"{% endif %}
+                           muted class="h-28 w-full bg-black object-cover" preload="metadata"></video>
+                    <span class="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">Video</span>
+                  {% else %}
+                    <img src="{{ url_for('static', filename=item.file_path) }}" alt="{{ item.caption or 'Gallery item' }}" class="h-28 w-full object-cover">
+                  {% endif %}
+                  <form method="POST" action="{{ url_for('content.delete_gallery', item_id=item.id) }}"
+                        onsubmit="return confirm('Remove this gallery item?');"
+                        class="absolute right-1 top-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-red-700">Remove</button>
+                  </form>
+                  {% if item.caption %}<p class="truncate px-2 py-1 text-xs text-slate-600">{{ item.caption }}</p>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-sm text-slate-400">No gallery items yet. The Gallery section is hidden on the live page until you add one.</p>
+          {% endif %}
+        {% endif %}
+
+        {# ---------- FAQ (repeatable) ---------- #}
+        {% if section.key == 'faq' %}
+          {% for item in faqs %}
+            <form method="POST" action="{{ url_for('content.update_faq', item_id=item.id) }}"
+                  class="rounded-lg border border-slate-200 p-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="text" name="question" value="{{ item.question }}"
+                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">
+              <textarea name="answer" rows="2"
+                        class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">{{ item.answer }}</textarea>
+              <div class="mt-2 flex gap-2">
+                <button type="submit" class="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700">Save</button>
+                <button type="submit" formaction="{{ url_for('content.delete_faq', item_id=item.id) }}"
+                        formnovalidate onclick="return confirm('Delete this FAQ?');"
+                        class="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">Delete</button>
+              </div>
+            </form>
+          {% endfor %}
+
+          <form method="POST" action="{{ url_for('content.add_faq') }}"
+                class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p class="text-sm font-semibold text-slate-700">Add a new FAQ</p>
+            <input type="text" name="question" placeholder="Question"
+                   class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+            <textarea name="answer" rows="2" placeholder="Answer"
+                      class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required></textarea>
+            <button type="submit" class="mt-2 rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700">Add FAQ</button>
+          </form>
+        {% endif %}
+
+      </div>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Client-side video poster capture.
+   No ffmpeg/Pillow on the server, so when an admin picks a video we grab its
+   first frame in a <canvas>, and submit it as a `poster` file alongside the
+   video. The server treats it as the poster upload. If capture fails for any
+   reason, submission proceeds without a poster and the branded placeholder /
+   auto-first-frame fallback still applies. */
+(function () {
+  document.querySelectorAll('[data-video-form]').forEach(function (form) {
+    const input = form.querySelector('[data-video-input]');
+    if (!input) return;
+    form.addEventListener('submit', function (e) {
+      const file = input.files && input.files[0];
+      if (!file || !file.type.startsWith('video/')) return;      // image upload: nothing to do
+      if (form.querySelector('input[name="poster"][type="file"]')) return; // already captured
+      if (form.dataset.capturing === 'done') return;
+
+      e.preventDefault();
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.src = URL.createObjectURL(file);
+
+      const finish = function () { form.dataset.capturing = 'done'; form.submit(); };
+
+      video.addEventListener('loadeddata', function () {
+        try { video.currentTime = Math.min(0.1, (video.duration || 1) / 2); }
+        catch (_) { finish(); }
+      });
+      video.addEventListener('seeked', function () {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 360;
+          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(function (blob) {
+            if (blob) {
+              const dt = new DataTransfer();
+              dt.items.add(new File([blob], 'poster.jpg', { type: 'image/jpeg' }));
+              const posterInput = document.createElement('input');
+              posterInput.type = 'file';
+              posterInput.name = 'poster';
+              posterInput.style.display = 'none';
+              posterInput.files = dt.files;
+              form.appendChild(posterInput);
+            }
+            finish();
+          }, 'image/jpeg', 0.85);
+        } catch (_) { finish(); }
+      });
+      video.addEventListener('error', finish);
+      // Safety net: never hang the form if the video never fires events.
+      setTimeout(finish, 4000);
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -14,12 +14,28 @@ from flask import (
 )
 
 from app.blueprints.public.forms import AdmissionForm
-from app.services import lead_service
+from app.services import content_service, lead_service
 from app.services.lead_service import LeadValidationError
 from app.services.reference_service import get_courses
 from app.utils.tracking import extract_tracking
 
 public_bp = Blueprint("public", __name__)
+
+
+def _render_landing(form, status_code=200):
+    """Render the landing page with the admission form and CMS content.
+
+    Content (logos, hero, video, images, gallery, FAQ) is resolved through
+    content_service with all fallback rules applied, so the template never
+    renders a broken or empty slot.
+    """
+    content = content_service.get_public_content()
+    return render_template(
+        "public/index.html",
+        form=form,
+        courses=get_courses(),
+        **content,
+    ), status_code
 
 
 @public_bp.route("/health", methods=["GET"])
@@ -37,7 +53,7 @@ def health():
 def index():
     """Render the landing page with an empty admission form."""
     form = AdmissionForm()
-    return render_template("public/index.html", form=form, courses=get_courses())
+    return _render_landing(form)
 
 
 @public_bp.route("/admission", methods=["POST"])
@@ -59,7 +75,16 @@ def submit_admission():
                     "email": form.email.data,
                     "city": form.city.data,
                     "course": form.course.data,
+                    "specialization": form.specialization.data,
                     "message": form.message.data,
+                    "guardian_name": form.guardian_name.data,
+                    "guardian_phone": form.guardian_phone.data,
+                    "address": form.address.data,
+                    "matric_board": form.matric_board.data,
+                    "matric_marks": form.matric_marks.data,
+                    "inter_board": form.inter_board.data,
+                    "inter_marks": form.inter_marks.data,
+                    "inter_group": form.inter_group.data,
                 },
                 tracking=extract_tracking(request),
             )
@@ -78,6 +103,4 @@ def submit_admission():
             return redirect(url_for("public.index", _anchor="admission"))
 
     # Either WTForms validation failed or the service rejected the data.
-    return render_template(
-        "public/index.html", form=form, courses=get_courses()
-    ), 400
+    return _render_landing(form, status_code=400)

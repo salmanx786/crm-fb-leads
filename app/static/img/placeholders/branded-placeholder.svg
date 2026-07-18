@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="MC College — image coming soon">
+  <defs>
+    <linearGradient id="mcgrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a365d"/>
+      <stop offset="1" stop-color="#12294a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#mcgrad)"/>
+  <circle cx="200" cy="120" r="46" fill="none" stroke="#ffc107" stroke-width="4"/>
+  <text x="200" y="134" text-anchor="middle" font-family="Inter, Arial, sans-serif"
+        font-size="40" font-weight="800" fill="#ffffff">MC</text>
+  <text x="200" y="210" text-anchor="middle" font-family="Inter, Arial, sans-serif"
+        font-size="18" font-weight="700" fill="#ffffff" letter-spacing="0.5">MC College</text>
+  <text x="200" y="236" text-anchor="middle" font-family="Inter, Arial, sans-serif"
+        font-size="12" font-weight="500" fill="#c7d2e0">Image coming soon</text>
+</svg>

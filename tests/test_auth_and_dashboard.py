@@ -291,7 +291,10 @@ def test_export_has_header_row_and_all_leads(client, admin, app):
     rows = _export_rows(client)
     # Header matches the documented column order exactly.
     assert rows[0] == [
-        "ID", "Created At", "Name", "Phone", "Email", "City", "Course",
+        "ID", "Created At", "Name", "Phone", "Email", "City",
+        "Program", "Specialization", "Guardian Name", "Guardian Phone",
+        "Address", "Matric Board", "Matric Marks",
+        "Inter Board", "Inter Marks", "Inter Type",
         "Status", "Source", "Next Follow-up", "Duplicate Count",
     ]
     # Two data rows (order is newest-first, but we only care about membership).
@@ -357,7 +360,7 @@ def test_export_duplicate_count_column_populated(client, admin, app):
 
     _login(client)
     rows = _export_rows(client)
-    dup_col = {r[2]: r[10] for r in rows[1:]}  # name -> Duplicate Count
+    dup_col = {r[2]: r[-1] for r in rows[1:]}  # name -> Duplicate Count (last col)
     assert dup_col["DupA"] == "2"
     assert dup_col["DupB"] == "2"
     assert dup_col["Solo"] == "1"

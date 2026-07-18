@@ -1,126 +1,297 @@
 {% extends "base.html" %}
 
-{% block title %}MC College of Medical Sciences — Admissions Open{% endblock %}
-{% block meta_description %}MC College of Medical Sciences offers accredited medical, nursing, and allied-health programs. Apply now — modern campus, expert faculty, university affiliation.{% endblock %}
+{% block title %}Apply for DPT or BSMT — MC College of Medical &amp; Allied Health Sciences{% endblock %}
+{% block meta_description %}Apply for DPT or BSMT at MC College of Medical &amp; Allied Health Sciences — affordable, HEC-recognised, affiliated with Jinnah Sindh Medical University (JSMU). Start your application in under a minute.{% endblock %}
+
+{% block head_extra %}
+  {# WhatsApp deep-link reused across the page (bubble, confirmation, help). #}
+  {% set WHATSAPP_NUMBER = "923312004658" %}
+  {% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
+  <style>
+    /* Respect users who prefer reduced motion for the autoplay video/scroll. */
+    html { scroll-padding-top: 64px; } /* keep #anchors clear of the sticky trust bar */
+  </style>
+{% endblock %}
 
 {% block content %}
+{% set WHATSAPP_NUMBER = "923312004658" %}
+{% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
 
-{# ============================ Header / Nav ============================ #}
-<header class="fixed inset-x-0 top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200">
-  <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Primary">
-    <a href="#hero" class="flex items-center gap-2">
-      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600 font-bold text-white">MC</span>
-      <span class="text-lg font-semibold text-slate-900">MC College</span>
-    </a>
+{# =====================================================================
+   Reusable logo-pair macro. Both logos always render at the SAME height
+   on a white/light panel with a neutral gray divider between them.
+   Images are expected at app/static/img/logos/ (see app/static/README.md).
+   ===================================================================== #}
+{% macro logo_pair(height="h-9", show_line=false) %}
+  {# Logos are REQUIRED slots (no fallback) — resolved from the CMS. #}
+  <div class="flex items-center justify-center gap-3">
+    {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
+         alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto">{% endif %}
+    <span class="h-8 w-px bg-[#D9D9D9]"></span>
+    {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
+         alt="Jinnah Sindh Medical University (JSMU)" class="{{ height }} w-auto">{% endif %}
+  </div>
+{% endmacro %}
 
-    <div class="hidden items-center gap-8 md:flex">
-      <a href="#programs" class="text-sm font-medium text-slate-600 hover:text-teal-700">Programs</a>
-      <a href="#why" class="text-sm font-medium text-slate-600 hover:text-teal-700">Why Us</a>
-      <a href="#facilities" class="text-sm font-medium text-slate-600 hover:text-teal-700">Facilities</a>
-      <a href="#faq" class="text-sm font-medium text-slate-600 hover:text-teal-700">FAQ</a>
-      <a href="#contact" class="text-sm font-medium text-slate-600 hover:text-teal-700">Contact</a>
-    </div>
+{# ============================ A. Sticky Trust Bar ============================ #}
+<div class="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white">
+  <div class="mx-auto flex h-12 max-w-3xl items-center justify-center px-4">
+    {{ logo_pair(height="h-8") }}
+  </div>
+</div>
 
-    <a href="#admission" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700">
-      Apply Now
-    </a>
-  </nav>
-</header>
-
-{# ============================ Flash messages ============================ #}
+{# ---- Flash messages (confirmation / errors) ---- #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="fixed inset-x-0 top-16 z-50 mx-auto max-w-3xl px-4">
+    <div class="fixed inset-x-0 top-14 z-50 mx-auto max-w-md px-4">
       {% for category, message in messages %}
         {% set tone = 'bg-green-50 text-green-800 border-green-200' if category == 'success'
                       else 'bg-red-50 text-red-800 border-red-200' if category in ['error', 'danger']
                       else 'bg-amber-50 text-amber-800 border-amber-200' %}
-        <div class="mb-2 rounded-lg border px-4 py-3 text-sm shadow-sm {{ tone }}" role="status">
-          {{ message }}
-        </div>
+        <div class="mb-2 rounded-lg border px-4 py-3 text-sm shadow-sm {{ tone }}" role="status">{{ message }}</div>
       {% endfor %}
     </div>
   {% endif %}
 {% endwith %}
 
-{# ============================ Hero ============================ #}
-<section id="hero" class="relative overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-600 pt-28 pb-20 text-white sm:pt-32">
-  <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-    <div>
-      <span class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
-        Admissions Open 2026–27
-      </span>
-      <h1 class="mt-5 text-4xl font-bold leading-tight sm:text-5xl">
-        Build Your Career in Medicine at MC College
-      </h1>
-      <p class="mt-5 max-w-xl text-lg text-teal-50">
-        Accredited medical, nursing, and allied-health programs delivered by
-        experienced faculty on a modern campus. Your journey to a healthcare
-        career starts here.
-      </p>
-      <div class="mt-8 flex flex-wrap gap-4">
-        <a href="#admission" class="rounded-lg bg-white px-6 py-3 font-semibold text-teal-700 shadow-sm transition hover:bg-teal-50">
-          Apply for Admission
-        </a>
-        <a href="#programs" class="rounded-lg border border-white/40 px-6 py-3 font-semibold text-white transition hover:bg-white/10">
-          Explore Programs
-        </a>
+<main class="pt-12">
+
+{# ============================ Micro-Hero + Form ============================ #}
+{# Extra bottom padding (pb-36) keeps the form's lower fields and Submit button
+   clear of the fixed WhatsApp bubble and the sticky "Continue" bar, so neither
+   ever overlaps an active input (addendum 2 §1). #}
+<section id="apply" class="bg-[#f8f9fa] px-4 pb-36 pt-6">
+  <div class="mx-auto max-w-md">
+    <h1 class="text-center text-2xl font-extrabold leading-snug text-[#1a365d] sm:text-3xl">
+      {{ c.hero_headline }}
+    </h1>
+
+    {# ---------------- Multi-step form ---------------- #}
+    <form id="admissionForm" method="POST" action="{{ url_for('public.submit_admission') }}"
+          class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      {{ form.hidden_tag() }}
+
+      {# Progress indicator #}
+      <p id="stepLabel" class="text-xs font-semibold uppercase tracking-wide text-[#1a365d]">Step 1 of 3</p>
+      <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+        <div id="progressBar" class="h-full w-1/3 rounded-full bg-[#ffc107] transition-all duration-300"></div>
       </div>
-      <dl class="mt-10 grid max-w-md grid-cols-3 gap-6">
-        <div>
-          <dt class="text-3xl font-bold">25+</dt>
-          <dd class="text-sm text-teal-100">Years of Excellence</dd>
+
+      {# ---------- STEP 1: program selection ---------- #}
+      <div data-step="1" class="mt-5">
+        <p class="text-base font-semibold text-[#333333]">Which program are you applying for?</p>
+        <div class="mt-3 grid grid-cols-2 gap-3">
+          <button type="button" data-program="DPT"
+                  class="program-card rounded-xl border-2 border-slate-200 bg-white px-4 py-5 text-center font-bold text-[#1a365d] transition hover:border-[#1a365d]">
+            DPT
+          </button>
+          <button type="button" data-program="BSMT"
+                  class="program-card rounded-xl border-2 border-slate-200 bg-white px-4 py-5 text-center font-bold text-[#1a365d] transition hover:border-[#1a365d]">
+            BSMT
+          </button>
         </div>
-        <div>
-          <dt class="text-3xl font-bold">5,000+</dt>
-          <dd class="text-sm text-teal-100">Alumni</dd>
+
+        {# BSMT sub-step — hidden until BSMT is chosen. Still Step 1. #}
+        <div id="bsmtBranch" class="mt-4 hidden">
+          <p class="text-base font-semibold text-[#333333]">Which BSMT specialization?</p>
+          <div class="mt-3 grid gap-3">
+            <button type="button" data-spec="Clinical Laboratory Sciences"
+                    class="spec-card rounded-xl border-2 border-slate-200 bg-white px-4 py-4 text-center font-semibold text-[#1a365d] transition hover:border-[#1a365d]">
+              Clinical Laboratory Sciences
+            </button>
+            <button type="button" data-spec="Radiological Imaging"
+                    class="spec-card rounded-xl border-2 border-slate-200 bg-white px-4 py-4 text-center font-semibold text-[#1a365d] transition hover:border-[#1a365d]">
+              Radiological Imaging
+            </button>
+          </div>
         </div>
-        <div>
-          <dt class="text-3xl font-bold">40+</dt>
-          <dd class="text-sm text-teal-100">Expert Faculty</dd>
+
+        {# Hidden real fields bound by the tap-cards above. #}
+        <div class="hidden">
+          {{ form.course() }}
+          {{ form.specialization() }}
         </div>
-      </dl>
+        {% for error in form.course.errors %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endfor %}
+        {% for error in form.specialization.errors %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endfor %}
+
+        {# ---- B. Highest-value trust placement: right below the choice ---- #}
+        <div class="mt-6 rounded-xl bg-[#f8f9fa] p-4">
+          {{ logo_pair(height="h-9") }}
+          <p class="mt-3 text-center text-xs text-[#333333]">
+            MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
+          </p>
+          {# Domain-trust note (addendum 2 §4): calm, factual, not a question. #}
+          <p class="mt-1.5 text-center text-[11px] text-slate-500">
+            Official MC College admissions portal — separate from our main site for faster processing.
+          </p>
+        </div>
+      </div>
+
+      {# ---------- STEP 2: academic qualifications ---------- #}
+      {# All fields optional at lead capture — no asterisks here (they mark
+         required fields only, kept consistent with Step 3). Boards + marks are
+         dropdowns to keep lead data clean; Year fields intentionally removed. #}
+      <div data-step="2" class="mt-5 hidden">
+        <p class="text-sm font-bold text-[#1a365d]">Matriculation</p>
+        <div class="mt-2 grid gap-3">
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-[#333333]">Matric Board</span>
+            {{ form.matric_board(class="form-input") }}
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-[#333333]">Matric Marks</span>
+            {{ form.matric_marks(class="form-input") }}
+          </label>
+        </div>
+
+        <p class="mt-4 text-sm font-bold text-[#1a365d]">Intermediate</p>
+        <div class="mt-2 grid gap-3">
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Board</span>
+            {{ form.inter_board(class="form-input") }}
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Marks</span>
+            {{ form.inter_marks(class="form-input") }}
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Type</span>
+            {{ form.inter_group(class="form-input") }}
+          </label>
+        </div>
+
+        <div class="mt-5 flex gap-3">
+          <button type="button" data-back class="w-1/3 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-[#333333] transition hover:bg-slate-50">Back</button>
+          <button type="button" data-next class="w-2/3 rounded-xl bg-[#ffc107] px-4 py-3 font-bold text-[#1a365d] transition hover:brightness-95">Continue</button>
+        </div>
+      </div>
+
+      {# ---------- STEP 3: personal / contact ---------- #}
+      {# Required fields are marked with * and validated inline (see script):
+         an empty required field blocks submit and shows a message directly
+         under the field, never a popup/alert. #}
+      <div data-step="3" class="mt-5 hidden">
+        <div class="grid gap-3">
+          <div>
+            {{ form.name(class="form-input", placeholder="Full Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
+            {% for error in form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            {{ form.guardian_name(class="form-input", placeholder="Guardian / Parent Name") }}
+          </div>
+          <div>
+            {{ form.phone(class="form-input", placeholder="Contact Number * (03XX-XXXXXXX)", type="tel", **{"data-required": "1", "data-error": "This field is required"}) }}
+            {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            {{ form.guardian_phone(class="form-input", placeholder="Guardian / Parent Contact Number (03XX-XXXXXXX)", type="tel") }}
+            {% for error in form.guardian_phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            {{ form.email(class="form-input", placeholder="Email", type="email") }}
+            {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            {{ form.city(class="form-input", placeholder="City") }}
+          </div>
+          <div>
+            {{ form.address(class="form-input", placeholder="Area / Locality (optional)") }}
+          </div>
+          {{ form.message(class="form-input", rows="2", placeholder="Anything else you'd like to tell us?") }}
+        </div>
+
+        <div class="mt-5 flex gap-3">
+          <button type="button" data-back class="w-1/3 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-[#333333] transition hover:bg-slate-50">Back</button>
+          <button type="submit" class="w-2/3 rounded-xl bg-[#ffc107] px-4 py-3 font-bold text-[#1a365d] transition hover:brightness-95">Submit Application</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+{# ============================ Principal's Video ============================ #}
+{# Hidden entirely when no video is uploaded (addendum §3 hide-when-empty). #}
+{% if show_video %}
+<section class="bg-white px-4 py-10">
+  <div class="mx-auto max-w-md">
+    <h2 class="text-center text-xl font-bold text-[#1a365d]">Hear From Our Principal</h2>
+    <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-black">
+      {# Self-hosted (no YouTube). Lazy-loaded: preload="none" + data-src swapped
+         in by IntersectionObserver so the video never competes with the form
+         for load priority. Muted autoplay with captions once in view. #}
+      <video class="h-auto w-full" controls muted playsinline preload="none"
+             data-lazy-video data-src="{{ c.principal_video }}"
+             {% if c.principal_video_poster %}poster="{{ c.principal_video_poster }}"{% endif %}>
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <p class="mt-4 text-sm leading-relaxed text-[#333333]">
+      Quality physical-therapy and medical-technology education should be within reach.
+      With support from the Mother &amp; Child Foundation, MC College keeps fees affordable
+      so more students can train for a recognised healthcare career — without the cost
+      being a barrier.
+    </p>
+  </div>
+</section>
+{% endif %}
+
+{# ============================ C. Recognition / Affiliation Proof ============================ #}
+<section class="bg-[#f8f9fa] px-4 py-10">
+  <div class="mx-auto max-w-lg text-center">
+    <h2 class="text-xl font-bold text-[#1a365d]">Recognized &amp; Affiliated</h2>
+
+    <div class="mt-5 flex items-center justify-center gap-3">
+      {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
+           alt="MC College of Medical &amp; Allied Health Sciences" class="h-16 w-auto">{% endif %}
+      <span class="text-sm font-semibold text-[#333333]">Affiliated with</span>
+      {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
+           alt="Jinnah Sindh Medical University (JSMU)" class="h-16 w-auto">{% endif %}
     </div>
 
-    <div class="hidden lg:block">
-      <div class="rounded-2xl bg-white/10 p-2 backdrop-blur">
-        <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=900&q=80"
-             alt="Students on the MC College medical campus"
-             class="h-full w-full rounded-xl object-cover" loading="eager">
-      </div>
+    <p class="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[#333333]">
+      MC College of Medical &amp; Allied Health Sciences is affiliated with
+      <strong>Jinnah Sindh Medical University (JSMU)</strong> and the
+      <strong>Sindh Medical Faculty</strong>. That means your DPT or BSMT degree is
+      awarded under a recognised public-sector university — a qualification employers
+      and higher-study programs accept. You can confirm our affiliation directly on
+      JSMU's own website below.
+    </p>
+
+    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+      <a href="{{ c.jsmu_dpt_url }}" target="_blank" rel="noopener noreferrer"
+         class="rounded-xl border border-[#1a365d] px-4 py-3 text-sm font-semibold text-[#1a365d] transition hover:bg-[#1a365d] hover:text-white">
+        Verify DPT on JSMU.edu.pk ↗
+      </a>
+      <a href="{{ c.jsmu_bsmt_url }}" target="_blank" rel="noopener noreferrer"
+         class="rounded-xl border border-[#1a365d] px-4 py-3 text-sm font-semibold text-[#1a365d] transition hover:bg-[#1a365d] hover:text-white">
+        Verify BSMT on JSMU.edu.pk ↗
+      </a>
     </div>
   </div>
 </section>
 
 {# ============================ Programs ============================ #}
-<section id="programs" class="bg-slate-50 py-20">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-2xl text-center">
-      <h2 class="text-3xl font-bold text-slate-900">Our Programs</h2>
-      <p class="mt-3 text-slate-600">Choose from a range of accredited healthcare programs designed to launch your career.</p>
-    </div>
-
-    <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+<section class="bg-white px-4 py-10">
+  <div class="mx-auto max-w-md">
+    <h2 class="text-center text-xl font-bold text-[#1a365d]">Our Programs</h2>
+    <div class="mt-5 grid gap-4">
       {% set programs = [
-        ('Bachelor of Medicine (MBBS)', 'A comprehensive undergraduate medical program covering clinical practice and research.', '5.5 years'),
-        ('B.Sc Nursing', 'Hands-on nursing education with supervised hospital placements.', '4 years'),
-        ('Bachelor of Physiotherapy (BPT)', 'Movement science and rehabilitation with modern lab facilities.', '4.5 years'),
-        ('B.Pharm', 'Pharmaceutical sciences from formulation to clinical pharmacy.', '4 years'),
-        ('BMLT (Lab Technology)', 'Diagnostic laboratory techniques and clinical pathology.', '3 years'),
-        ('Post Basic B.Sc Nursing', 'Career advancement for registered nurses.', '2 years'),
+        ("DPT", "", "Doctor of Physical Therapy", "5 years", "A professional degree training you to assess and treat movement and rehabilitation needs across clinical settings.", c.program_dpt_img),
+        ("BSMT", "Clinical Laboratory Sciences", "BSMT — Clinical Laboratory Sciences", "4 years", "Diagnostic laboratory science: pathology, microbiology, and clinical testing that guides patient care.", c.program_bsmt_cls_img),
+        ("BSMT", "Radiological Imaging", "BSMT — Radiological Imaging", "4 years", "Medical imaging technology: X-ray, CT, MRI, and ultrasound used to diagnose and monitor patients.", c.program_bsmt_ri_img)
       ] %}
-      {% for title, desc, duration in programs %}
-        <article class="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
-            </svg>
-          </div>
-          <h3 class="mt-4 text-lg font-semibold text-slate-900">{{ title }}</h3>
-          <p class="mt-2 flex-1 text-sm text-slate-600">{{ desc }}</p>
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-            <span class="text-sm font-medium text-slate-500">{{ duration }}</span>
-            <a href="#admission" class="text-sm font-semibold text-teal-700 hover:text-teal-800">Apply →</a>
+      {% for prog, spec, title, duration, desc, img in programs %}
+        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {# Program image: real upload or branded placeholder (never blank). #}
+          {% if img %}<img src="{{ img }}" alt="{{ title }}" loading="lazy" class="h-36 w-full object-cover">{% endif %}
+          <div class="p-5">
+            <h3 class="text-base font-bold text-[#1a365d]">{{ title }}</h3>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wide text-[#2E663F]">{{ duration }}</p>
+            <p class="mt-2 text-sm text-[#333333]">{{ desc }}</p>
+            <button type="button" class="apply-cta mt-4 w-full rounded-xl bg-[#ffc107] px-4 py-2.5 font-bold text-[#1a365d] transition hover:brightness-95"
+                    data-program="{{ prog }}" data-spec="{{ spec }}">
+              Apply Now
+            </button>
           </div>
         </article>
       {% endfor %}
@@ -128,272 +299,361 @@
   </div>
 </section>
 
-{# ============================ Why Choose MC College ============================ #}
-<section id="why" class="py-20">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-2xl text-center">
-      <h2 class="text-3xl font-bold text-slate-900">Why Choose MC College</h2>
-      <p class="mt-3 text-slate-600">A trusted name in medical education, committed to your success.</p>
-    </div>
-
-    <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+{# ============================ Why Choose Us ============================ #}
+<section class="bg-[#f8f9fa] px-4 py-10">
+  <div class="mx-auto max-w-md">
+    <h2 class="text-center text-xl font-bold text-[#1a365d]">Why Choose MC College</h2>
+    <div class="mt-5 grid gap-4">
       {% set reasons = [
-        ('Accredited Programs', 'Recognised by national medical and nursing councils.'),
-        ('Expert Faculty', 'Learn from practising clinicians and researchers.'),
-        ('Clinical Exposure', 'Training at affiliated multi-specialty hospitals.'),
-        ('Placement Support', 'Dedicated cell with a strong hospital network.'),
+        ("Affordable Fees", "Kept low so cost is never the reason you can't study.", c.why_1_img),
+        ("Mother &amp; Child Foundation Support", "Financial support helps deserving students continue their education.", c.why_2_img),
+        ("HEC-Recognized Degree", "Degrees awarded under JSMU — recognised and accepted.", c.why_3_img),
+        ("Experienced Faculty &amp; Facilities", "Learn from practising professionals in equipped labs.", c.why_4_img)
       ] %}
-      {% for title, desc in reasons %}
-        <div class="text-center">
-          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+      {% for title, desc, img in reasons %}
+        <div class="flex gap-3 rounded-xl bg-white p-4 shadow-sm">
+          {# Icon/photo: real upload or branded placeholder (never blank). #}
+          {% if img %}
+            <img src="{{ img }}" alt="" loading="lazy" class="mt-0.5 h-8 w-8 flex-none rounded-full object-cover">
+          {% else %}
+            <span class="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#1a365d] text-sm font-bold text-white">✓</span>
+          {% endif %}
+          <div>
+            <h3 class="text-sm font-bold text-[#1a365d]">{{ title | safe }}</h3>
+            <p class="mt-0.5 text-sm text-[#333333]">{{ desc | safe }}</p>
           </div>
-          <h3 class="mt-4 font-semibold text-slate-900">{{ title }}</h3>
-          <p class="mt-2 text-sm text-slate-600">{{ desc }}</p>
         </div>
       {% endfor %}
     </div>
   </div>
 </section>
 
-{# ============================ Facilities ============================ #}
-<section id="facilities" class="bg-slate-50 py-20">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-2xl text-center">
-      <h2 class="text-3xl font-bold text-slate-900">Campus Facilities</h2>
-      <p class="mt-3 text-slate-600">Everything you need to learn, practise, and thrive.</p>
-    </div>
-
-    <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {% set facilities = [
-        ('Modern Laboratories', 'Fully equipped anatomy, physiology, and pathology labs.'),
-        ('Digital Library', 'Thousands of journals and e-resources, open late.'),
-        ('Simulation Center', 'Practise clinical skills in a safe, realistic setting.'),
-        ('Hostel & Dining', 'Secure on-campus residence with healthy meals.'),
-        ('Sports Complex', 'Indoor and outdoor facilities for well-being.'),
-        ('Wi-Fi Campus', 'High-speed connectivity across the campus.'),
-      ] %}
-      {% for title, desc in facilities %}
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="font-semibold text-slate-900">{{ title }}</h3>
-          <p class="mt-2 text-sm text-slate-600">{{ desc }}</p>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# ============================ Affiliated University ============================ #}
-<section id="affiliation" class="py-20">
-  <div class="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
-    <h2 class="text-3xl font-bold text-slate-900">Affiliated University</h2>
-    <p class="mx-auto mt-3 max-w-2xl text-slate-600">
-      MC College is proudly affiliated with the State University of Health Sciences
-      and recognised by the relevant national regulatory councils, ensuring your
-      degree is respected across the healthcare sector.
-    </p>
-    <div class="mt-10 flex flex-wrap items-center justify-center gap-8 opacity-80">
-      {% for label in ['State University of Health Sciences', 'National Medical Council', 'Nursing Council', 'Pharmacy Council'] %}
-        <div class="rounded-lg border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-700 shadow-sm">
-          {{ label }}
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# ============================ Testimonials ============================ #}
-<section id="testimonials" class="bg-teal-700 py-20 text-white">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-2xl text-center">
-      <h2 class="text-3xl font-bold">What Our Students Say</h2>
-      <p class="mt-3 text-teal-100">Real stories from the MC College community.</p>
-    </div>
-
-    <div class="mt-12 grid gap-6 lg:grid-cols-3">
-      {% set testimonials = [
-        ('Priya Sharma', 'B.Sc Nursing, 2024', 'The clinical placements gave me real confidence. I had a job offer before I even graduated.'),
-        ('Arjun Mehta', 'BPT, 2023', 'Excellent faculty and hands-on labs. The simulation center is genuinely world-class.'),
-        ('Fatima Khan', 'B.Pharm, 2024', 'Supportive environment and strong placement help. I would choose MC College again.'),
-      ] %}
-      {% for name, meta, quote in testimonials %}
-        <figure class="rounded-2xl bg-white/10 p-6 backdrop-blur">
-          <blockquote class="text-teal-50">&ldquo;{{ quote }}&rdquo;</blockquote>
-          <figcaption class="mt-4 border-t border-white/20 pt-4">
-            <div class="font-semibold">{{ name }}</div>
-            <div class="text-sm text-teal-200">{{ meta }}</div>
-          </figcaption>
+{# ============================ Gallery ============================ #}
+{# Rendered only when at least one item is uploaded (addendum §3/§4
+   hide-when-empty). Reappears automatically once content is added. #}
+{% if show_gallery %}
+<section class="bg-white px-4 py-10">
+  <div class="mx-auto max-w-md">
+    <h2 class="text-center text-xl font-bold text-[#1a365d]">Campus Gallery</h2>
+    <div class="mt-5 grid grid-cols-2 gap-3">
+      {% for item in gallery %}
+        <figure class="overflow-hidden rounded-xl border border-slate-200">
+          {% if item.media_type == 'video' %}
+            <video src="{{ url_for('static', filename=item.file_path) }}"
+                   {% if item.poster_path %}poster="{{ url_for('static', filename=item.poster_path) }}"{% endif %}
+                   controls muted playsinline preload="none" class="h-32 w-full bg-black object-cover"></video>
+          {% else %}
+            <img src="{{ url_for('static', filename=item.file_path) }}"
+                 alt="{{ item.caption or 'MC College campus' }}" loading="lazy" class="h-32 w-full object-cover">
+          {% endif %}
+          {% if item.caption %}<figcaption class="px-2 py-1 text-xs text-[#333333]">{{ item.caption }}</figcaption>{% endif %}
         </figure>
       {% endfor %}
     </div>
   </div>
 </section>
+{% endif %}
 
 {# ============================ FAQ ============================ #}
-<section id="faq" class="py-20">
-  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-    <div class="text-center">
-      <h2 class="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
-      <p class="mt-3 text-slate-600">Answers to what applicants ask us most.</p>
-    </div>
-
-    <div class="mt-10 space-y-4">
-      {% set faqs = [
-        ('What are the eligibility requirements?', 'Eligibility varies by program. Most undergraduate courses require completion of 10+2 with science subjects and a qualifying entrance score where applicable.'),
-        ('When does the admission process start?', 'Admissions for the 2026–27 session are open now. Submit the enquiry form and our team will guide you through the next steps.'),
-        ('Is hostel accommodation available?', 'Yes. Separate, secure hostel facilities for all students with dining and Wi-Fi are available on campus.'),
-        ('Do you provide placement assistance?', 'Yes. Our dedicated placement cell works with a network of affiliated hospitals and healthcare employers.'),
-        ('Can I visit the campus before applying?', 'Absolutely. Mention it in your enquiry message and we will arrange a campus tour.'),
+<section class="bg-white px-4 py-10">
+  <div class="mx-auto max-w-md">
+    <h2 class="text-center text-xl font-bold text-[#1a365d]">Frequently Asked Questions</h2>
+    <div class="mt-5 space-y-3">
+      {# FAQ items come from the CMS (seeded with defaults, editable, never
+         blank). Hardcoded defaults below are a template-level safety net in
+         case the list is somehow empty. #}
+      {% set default_faqs = [
+        ("Who is eligible to apply?", "For DPT and BSMT you generally need Intermediate (Pre-Medical preferred). Submit your marks in the form and our team will confirm your eligibility."),
+        ("How affordable is it really?", "Fees are kept low, and eligible students can receive support through the Mother & Child Foundation. Our team will walk you through the exact fee structure."),
+        ("Is the degree HEC recognized?", "Yes. Programs are offered under affiliation with Jinnah Sindh Medical University (JSMU); you can verify this on JSMU's official site linked above."),
+        ("How long are the programs?", "DPT is 5 years. BSMT (both specializations) is 4 years."),
+        ("Is financial support available?", "Yes — support through the Mother & Child Foundation is available for deserving students. Ask our team about how to qualify.")
       ] %}
-      {% for question, answer in faqs %}
-        <details class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <summary class="flex cursor-pointer items-center justify-between font-semibold text-slate-900">
-            {{ question }}
-            <svg class="h-5 w-5 text-teal-600 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </summary>
-          <p class="mt-3 text-sm text-slate-600">{{ answer }}</p>
-        </details>
-      {% endfor %}
+      {% if faqs %}
+        {% for item in faqs %}
+          <details class="group rounded-xl border border-slate-200 bg-white p-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between font-semibold text-[#1a365d]">
+              <span>{{ item.question }}</span>
+              <span class="ml-2 text-[#ffc107] transition group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-2 whitespace-pre-line text-sm text-[#333333]">{{ item.answer }}</p>
+          </details>
+        {% endfor %}
+      {% else %}
+        {% for q, a in default_faqs %}
+          <details class="group rounded-xl border border-slate-200 bg-white p-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between font-semibold text-[#1a365d]">
+              <span>{{ q }}</span>
+              <span class="ml-2 text-[#ffc107] transition group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-2 text-sm text-[#333333]">{{ a }}</p>
+          </details>
+        {% endfor %}
+      {% endif %}
     </div>
   </div>
 </section>
 
-{# ============================ Contact + Admission Form ============================ #}
-<section id="contact" class="bg-slate-50 py-20">
-  <div class="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-
-    {# --- Contact details --- #}
-    <div>
-      <h2 class="text-3xl font-bold text-slate-900">Get in Touch</h2>
-      <p class="mt-3 text-slate-600">
-        Have a question or ready to apply? Reach out or fill in the admission
-        enquiry form and our admissions team will contact you shortly.
-      </p>
-
-      <dl class="mt-8 space-y-5">
-        <div class="flex items-start gap-4">
-          <dt class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11 11 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-          </dt>
-          <dd><div class="font-medium text-slate-900">Phone</div><div class="text-slate-600">+91 98765 43210</div></dd>
-        </div>
-        <div class="flex items-start gap-4">
-          <dt class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-          </dt>
-          <dd><div class="font-medium text-slate-900">Email</div><div class="text-slate-600">admissions@mccollege.edu</div></dd>
-        </div>
-        <div class="flex items-start gap-4">
-          <dt class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          </dt>
-          <dd><div class="font-medium text-slate-900">Campus</div><div class="text-slate-600">123 Health Sciences Road, Medical City</div></dd>
-        </div>
-      </dl>
+{# ============================ D. Footer ============================ #}
+<footer class="bg-[#1a365d] px-4 py-10 text-white">
+  <div class="mx-auto max-w-md text-center">
+    {# Logos sit on a white panel — never directly on navy. #}
+    <div class="rounded-2xl bg-white p-4">
+      {{ logo_pair(height="h-10") }}
     </div>
+    <p class="mt-4 text-sm text-slate-200">
+      MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
+    </p>
 
-    {# --- Admission form --- #}
-    <div id="admission" class="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
-      <h3 class="text-xl font-bold text-slate-900">Admission Enquiry</h3>
-      <p class="mt-1 text-sm text-slate-500">Fields marked <span class="text-red-500">*</span> are required.</p>
-
-      <form method="POST" action="{{ url_for('public.submit_admission') }}" novalidate class="mt-6 space-y-5">
-        {{ form.hidden_tag() }}  {# CSRF token #}
-
-        {# Name #}
-        <div>
-          {{ form.name.label(class="block text-sm font-medium text-slate-700") }} <span class="text-red-500">*</span>
-          {{ form.name(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="Your full name") }}
-          {% for error in form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-        </div>
-
-        {# Phone #}
-        <div>
-          {{ form.phone.label(class="block text-sm font-medium text-slate-700") }} <span class="text-red-500">*</span>
-          {{ form.phone(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="+91 98765 43210") }}
-          {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-        </div>
-
-        {# Email #}
-        <div>
-          {{ form.email.label(class="block text-sm font-medium text-slate-700") }}
-          {{ form.email(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="you@example.com") }}
-          {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-        </div>
-
-        {# City + Course #}
-        <div class="grid gap-5 sm:grid-cols-2">
-          <div>
-            {{ form.city.label(class="block text-sm font-medium text-slate-700") }}
-            {{ form.city(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="Your city") }}
-            {% for error in form.city.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-          </div>
-          <div>
-            {{ form.course.label(class="block text-sm font-medium text-slate-700") }}
-            {{ form.course(class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
-            {% for error in form.course.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-          </div>
-        </div>
-
-        {# Message #}
-        <div>
-          {{ form.message.label(class="block text-sm font-medium text-slate-700") }}
-          {{ form.message(rows=4, class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="Tell us how we can help (optional)") }}
-          {% for error in form.message.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-        </div>
-
-        <button type="submit" class="w-full rounded-lg bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
-          Submit Enquiry
-        </button>
-      </form>
-    </div>
-  </div>
-</section>
-
-{# ============================ Footer ============================ #}
-<footer class="bg-slate-900 py-12 text-slate-300">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="grid gap-10 md:grid-cols-4">
-      <div class="md:col-span-2">
-        <div class="flex items-center gap-2">
-          <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600 font-bold text-white">MC</span>
-          <span class="text-lg font-semibold text-white">MC College</span>
-        </div>
-        <p class="mt-4 max-w-md text-sm text-slate-400">
-          Accredited medical and allied-health education with a modern campus,
-          experienced faculty, and strong university affiliation. Shaping the
-          next generation of healthcare professionals.
-        </p>
+    <dl class="mt-6 space-y-2 text-sm text-slate-200">
+      <div><a href="tel:+922136684658" class="hover:text-white">021-36684658</a></div>
+      <div><a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener" class="hover:text-white">WhatsApp: +92 331 2004658</a></div>
+      <div><a href="mailto:admission@mccollege.edu.pk" class="hover:text-white">admission@mccollege.edu.pk</a></div>
+      {# Address as plain text — no map embed/link, per the confirmed decision to keep the page fast and link-free. #}
+      <div class="not-italic">
+        Main Campus: C 177/2, Rameez Raja Road, Block A, North Nazimabad off KDA Chowrangi near Rose Garden, Karachi
       </div>
+    </dl>
 
-      <div>
-        <h4 class="text-sm font-semibold uppercase tracking-wide text-white">Explore</h4>
-        <ul class="mt-4 space-y-2 text-sm">
-          <li><a href="#programs" class="hover:text-white">Programs</a></li>
-          <li><a href="#facilities" class="hover:text-white">Facilities</a></li>
-          <li><a href="#faq" class="hover:text-white">FAQ</a></li>
-          <li><a href="#admission" class="hover:text-white">Apply Now</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h4 class="text-sm font-semibold uppercase tracking-wide text-white">Contact</h4>
-        <ul class="mt-4 space-y-2 text-sm text-slate-400">
-          <li>+91 98765 43210</li>
-          <li>admissions@mccollege.edu</li>
-          <li>123 Health Sciences Road, Medical City</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="mt-10 border-t border-slate-800 pt-6 text-center text-sm text-slate-500">
-      &copy; {{ current_year }} MC College of Medical Sciences. All rights reserved.
-    </div>
+    <p class="mt-6 text-xs text-slate-400">
+      This is an official admissions portal for MC College of Medical &amp; Allied Health Sciences,
+      affiliated with Jinnah Sindh Medical University. Run separately from our main website to
+      process admissions inquiries faster.
+    </p>
+    <p class="mt-2 text-xs text-slate-500">&copy; {{ current_year }} MC College of Medical &amp; Allied Health Sciences.</p>
   </div>
 </footer>
 
+</main>
+
+{# ============================ Sticky bottom bars ============================ #}
+{# Continue Application — appears only after Step 1 answered and scrolled past. #}
+<button id="continueBar" type="button"
+        class="fixed inset-x-0 bottom-0 z-40 hidden bg-[#ffc107] px-4 py-3 text-center font-bold text-[#1a365d] shadow-[0_-2px_8px_rgba(0,0,0,0.15)]">
+  Continue Application — <span id="continueStep">Step 2 of 3</span>
+</button>
+
+{# WhatsApp bubble — always visible. #}
+<a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener"
+   aria-label="Chat with us on WhatsApp"
+   class="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] shadow-lg transition hover:scale-105">
+  <svg class="h-8 w-8 fill-white" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/>
+  </svg>
+</a>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .form-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #cbd5e1;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.95rem;
+    color: #333333;
+    background: #fff;
+  }
+  .form-input:focus { outline: none; border-color: #1a365d; box-shadow: 0 0 0 2px rgba(26,54,93,.15); }
+  .form-input.field-invalid { border-color: #dc2626; }
+  .form-input.field-invalid:focus { box-shadow: 0 0 0 2px rgba(220,38,38,.15); }
+  .program-card.selected, .spec-card.selected {
+    border-color: #1a365d; background: #1a365d; color: #fff;
+  }
+</style>
+<script>
+(function () {
+  const form = document.getElementById('admissionForm');
+  const steps = {
+    1: form.querySelector('[data-step="1"]'),
+    2: form.querySelector('[data-step="2"]'),
+    3: form.querySelector('[data-step="3"]'),
+  };
+  const stepLabel = document.getElementById('stepLabel');
+  const progressBar = document.getElementById('progressBar');
+  const bsmtBranch = document.getElementById('bsmtBranch');
+  const courseInput = form.querySelector('#course');
+  const specInput = form.querySelector('#specialization');
+  const continueBar = document.getElementById('continueBar');
+  const continueStep = document.getElementById('continueStep');
+  const applySection = document.getElementById('apply');
+
+  let current = 1;
+  let started = false; // Step 1 answered at least once
+
+  function showStep(n) {
+    current = n;
+    Object.keys(steps).forEach(k => steps[k].classList.toggle('hidden', Number(k) !== n));
+    stepLabel.textContent = 'Step ' + n + ' of 3';
+    progressBar.style.width = (n / 3 * 100) + '%';
+    continueStep.textContent = 'Step ' + n + ' of 3';
+  }
+
+  // If the server re-rendered with errors, jump the user to the step that has them.
+  function initialStep() {
+    if (form.querySelector('[data-step="3"] .text-red-600')) return 3;
+    if (courseInput.value) { started = true; return 1; }
+    return 1;
+  }
+
+  // ---- Step 1: program tap-cards ----
+  form.querySelectorAll('.program-card').forEach(card => {
+    card.addEventListener('click', () => {
+      form.querySelectorAll('.program-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const program = card.dataset.program;
+      courseInput.value = program;
+      started = true;
+      if (program === 'BSMT') {
+        bsmtBranch.classList.remove('hidden');
+        // wait for specialization before advancing
+      } else {
+        specInput.value = '';
+        bsmtBranch.classList.add('hidden');
+        form.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
+        showStep(2);
+      }
+    });
+  });
+
+  // ---- Step 1 sub-step: BSMT specialization ----
+  form.querySelectorAll('.spec-card').forEach(card => {
+    card.addEventListener('click', () => {
+      form.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      specInput.value = card.dataset.spec;
+      showStep(2);
+    });
+  });
+
+  // ---- Inline field validation ----
+  // Shows a message directly under an empty required field (never a popup) and
+  // blocks advancing/submitting until it's filled. Marked via data-required.
+  function fieldError(input, message) {
+    clearError(input);
+    input.classList.add('field-invalid');
+    input.setAttribute('aria-invalid', 'true');
+    const msg = document.createElement('p');
+    msg.className = 'field-error mt-1 text-sm text-red-600';
+    msg.textContent = message || 'This field is required';
+    input.insertAdjacentElement('afterend', msg);
+  }
+  function clearError(input) {
+    input.classList.remove('field-invalid');
+    input.removeAttribute('aria-invalid');
+    const next = input.nextElementSibling;
+    if (next && next.classList.contains('field-error')) next.remove();
+  }
+  // Validate every required field within a given step element. Returns the
+  // first invalid input (for focus), or null if the step is valid.
+  function validateStep(stepEl) {
+    let firstInvalid = null;
+    stepEl.querySelectorAll('[data-required]').forEach(input => {
+      if (!input.value.trim()) {
+        fieldError(input, input.dataset.error);
+        if (!firstInvalid) firstInvalid = input;
+      } else {
+        clearError(input);
+      }
+    });
+    return firstInvalid;
+  }
+  // Clear a field's error as soon as the user starts fixing it.
+  form.querySelectorAll('[data-required]').forEach(input => {
+    input.addEventListener('input', () => { if (input.value.trim()) clearError(input); });
+  });
+
+  // ---- Back / Continue ----
+  // Step 2 has no required fields, so Continue always advances to Step 3.
+  form.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => showStep(3)));
+  form.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showStep(current - 1 < 1 ? 1 : current - 1)));
+
+  // ---- Submit: block if Step 3 required fields are empty ----
+  form.addEventListener('submit', (e) => {
+    const invalid = validateStep(steps[3]);
+    if (invalid) {
+      e.preventDefault();
+      showStep(3);
+      invalid.focus();
+    }
+  });
+
+  // ---- Program cards lower on the page pre-select + jump to form ----
+  document.querySelectorAll('.apply-cta').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const program = btn.dataset.program;
+      const spec = btn.dataset.spec;
+      form.querySelectorAll('.program-card').forEach(c =>
+        c.classList.toggle('selected', c.dataset.program === program));
+      courseInput.value = program;
+      started = true;
+      if (program === 'BSMT' && spec) {
+        specInput.value = spec;
+        bsmtBranch.classList.remove('hidden');
+        form.querySelectorAll('.spec-card').forEach(c =>
+          c.classList.toggle('selected', c.dataset.spec === spec));
+        showStep(2);
+      } else if (program === 'BSMT') {
+        bsmtBranch.classList.remove('hidden');
+        showStep(1);
+      } else {
+        specInput.value = '';
+        showStep(2);
+      }
+      applySection.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // ---- Sticky "Continue Application" bar: show when form scrolled out of view ----
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const show = started && !entry.isIntersecting;
+      continueBar.classList.toggle('hidden', !show);
+    });
+  }, { threshold: 0 });
+  observer.observe(applySection);
+
+  continueBar.addEventListener('click', () => {
+    applySection.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  showStep(initialStep());
+})();
+</script>
+
+{# Lazy-load self-hosted videos: the form is always top loading priority, so a
+   video's real source (data-src) is only attached when it scrolls near view.
+   Muted autoplay with captions once loaded, matching the spec. #}
+<script>
+(function () {
+  const videos = document.querySelectorAll('video[data-lazy-video]');
+  if (!videos.length) return;
+
+  const load = function (video) {
+    if (video.dataset.loaded) return;
+    video.dataset.loaded = '1';
+    if (video.dataset.src) {
+      const source = document.createElement('source');
+      source.src = video.dataset.src;
+      source.type = 'video/mp4';
+      video.appendChild(source);
+    }
+    video.load();
+    // Attempt muted autoplay once in view; ignore rejection (e.g. data saver).
+    video.play().catch(function () {});
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    videos.forEach(load);
+    return;
+  }
+  const io = new IntersectionObserver(function (entries, obs) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) { load(entry.target); obs.unobserve(entry.target); }
+    });
+  }, { rootMargin: '200px' });
+  videos.forEach(function (v) { io.observe(v); });
+})();
+</script>
 {% endblock %}

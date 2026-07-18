@@ -37,8 +37,23 @@
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</dt><dd class="mt-0.5 text-slate-800">{{ lead.phone }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</dt><dd class="mt-0.5 text-slate-800">{{ lead.email or '—' }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">City</dt><dd class="mt-0.5 text-slate-800">{{ lead.city or '—' }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Course</dt><dd class="mt-0.5 text-slate-800">{{ lead.course or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Program</dt><dd class="mt-0.5 text-slate-800">{{ lead.course or '—' }}{% if lead.specialization %} — {{ lead.specialization }}{% endif %}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Guardian / Parent Name</dt><dd class="mt-0.5 text-slate-800">{{ lead.guardian_name or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Guardian / Parent Contact</dt><dd class="mt-0.5 text-slate-800">{{ lead.guardian_phone or '—' }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Area / Locality</dt><dd class="mt-0.5 text-slate-800">{{ lead.address or '—' }}</dd></div>
         <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Message</dt><dd class="mt-0.5 whitespace-pre-line text-slate-800">{{ lead.message or '—' }}</dd></div>
+      </dl>
+    </section>
+
+    {# ---- Academic Qualifications ---- #}
+    <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Academic Qualifications</h3>
+      <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Matric Board</dt><dd class="mt-0.5 text-slate-800">{{ lead.matric_board or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Matric Marks</dt><dd class="mt-0.5 text-slate-800">{{ lead.matric_marks or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Intermediate Board</dt><dd class="mt-0.5 text-slate-800">{{ lead.inter_board or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Intermediate Marks</dt><dd class="mt-0.5 text-slate-800">{{ lead.inter_marks or '—' }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Intermediate Type</dt><dd class="mt-0.5 text-slate-800">{{ lead.inter_group or '—' }}</dd></div>
       </dl>
     </section>
 

@@ -25,3 +25,6 @@ logs/
 
 # Flask-Migrate scratch
 migrations/versions/__pycache__/
+
+# Admin-uploaded media (runtime content, not source)
+app/static/uploads/

@@ -79,7 +79,19 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
         email=normalize_email(data.get("email")),
         city=clean_str(data.get("city"), 120),
         course=clean_str(data.get("course"), 120),
+        specialization=clean_str(data.get("specialization"), 120),
         message=clean_str(data.get("message")),
+        # Guardian / contact (Step 3)
+        guardian_name=clean_str(data.get("guardian_name"), 120),
+        guardian_phone=normalize_phone(data.get("guardian_phone")),
+        address=clean_str(data.get("address"), 512),
+        # Academic qualifications (Step 2). Year fields were dropped from the
+        # form (addendum 2 §2); the nullable columns remain but stay empty.
+        matric_board=clean_str(data.get("matric_board"), 120),
+        matric_marks=clean_str(data.get("matric_marks"), 30),
+        inter_board=clean_str(data.get("inter_board"), 120),
+        inter_marks=clean_str(data.get("inter_marks"), 30),
+        inter_group=clean_str(data.get("inter_group"), 60),
         status=DEFAULT_LEAD_STATUS,
         utm_source=clean_str(tracking.get("utm_source"), 120),
         utm_medium=clean_str(tracking.get("utm_medium"), 120),

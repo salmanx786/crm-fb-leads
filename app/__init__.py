@@ -92,9 +92,10 @@ def _init_extensions(app: Flask) -> None:
 
 def _register_blueprints(app: Flask) -> None:
     from app.blueprints.auth import auth_bp
-    from app.blueprints.dashboard import dashboard_bp
+    from app.blueprints.dashboard import content_bp, dashboard_bp
     from app.blueprints.public import public_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(content_bp)

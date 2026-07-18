@@ -39,8 +39,19 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
             "name": "Asha Verma",
             "phone": "+91 98765 43210",
             "email": "asha@example.com",
-            "city": "Pune",
-            "course": "MBA",
+            "city": "Karachi",
+            "course": "BSMT",
+            "specialization": "Radiological Imaging",
+            "guardian_name": "Ramesh Verma",
+            "guardian_phone": "+92 300 1234567",
+            "address": "Block A",
+            # Step 2 fields are dropdowns — values must match the reference
+            # choices (see reference_service). Year fields were removed.
+            "matric_board": "BSEK (Karachi)",
+            "matric_marks": "Above 80%",
+            "inter_board": "Aga Khan (AKU-EB)",
+            "inter_marks": "70–80%",
+            "inter_group": "Pre-Medical",
             "message": "Please share the fee structure.",
         },
     )
@@ -62,7 +73,14 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
         lead = leads[0]
         assert lead.name == "Asha Verma"
         assert lead.email == "asha@example.com"  # normalised to lowercase
-        assert lead.course == "MBA"
+        assert lead.course == "BSMT"
+        assert lead.specialization == "Radiological Imaging"
+        assert lead.guardian_name == "Ramesh Verma"
+        assert lead.guardian_phone == "+923001234567"  # normalised
+        assert lead.matric_board == "BSEK (Karachi)"
+        assert lead.matric_marks == "Above 80%"
+        assert lead.inter_marks == "70–80%"
+        assert lead.inter_group == "Pre-Medical"
         assert lead.status == "New"
         assert lead.utm_source == "google"
         assert lead.utm_medium == "cpc"
