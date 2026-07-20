@@ -243,16 +243,22 @@
          under the field, never a popup/alert. #}
       <div data-step="3" class="mt-5 hidden">
         <div class="grid gap-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              {{ form.first_name(class="form-input", placeholder="First Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
+              {% for error in form.first_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+              {{ form.last_name(class="form-input", placeholder="Last Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
+              {% for error in form.last_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
           <div>
-            {{ form.name(class="form-input", placeholder="Full Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
-            {% for error in form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            {{ form.phone(class="form-input", placeholder="Contact Number * (WhatsApp preferred, 03XX-XXXXXXX)", type="tel", **{"data-required": "1", "data-error": "This field is required"}) }}
+            {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
           </div>
           <div>
             {{ form.guardian_name(class="form-input", placeholder="Guardian / Parent Name") }}
-          </div>
-          <div>
-            {{ form.phone(class="form-input", placeholder="Contact Number * (03XX-XXXXXXX)", type="tel", **{"data-required": "1", "data-error": "This field is required"}) }}
-            {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
           </div>
           <div>
             {{ form.guardian_phone(class="form-input", placeholder="Guardian / Parent Contact Number (03XX-XXXXXXX)", type="tel") }}
@@ -491,6 +497,9 @@
       process admissions inquiries faster.
     </p>
     <p class="mt-2 text-xs text-slate-500">&copy; {{ current_year }} MC College of Medical &amp; Allied Health Sciences.</p>
+    <p class="mt-3 text-xs">
+      <a href="{{ url_for('public.privacy') }}" class="text-slate-300 underline hover:text-white">Privacy Policy</a>
+    </p>
   </div>
 </footer>
 

@@ -40,6 +40,22 @@ MARKS_RANGES: list[str] = [
     "Above 80%",
 ]
 
+# Minimum Intermediate percentage each program requires. Used by the post-
+# submission thank-you page to give the applicant an instant eligibility read.
+ELIGIBILITY_THRESHOLDS: dict[str, int] = {
+    "BSMT": 50,
+    "DPT": 60,
+}
+
+# The percentage floor each marks band guarantees. "Below 60%" has no reliable
+# floor (it spans everything under 60), so it maps to None and can never be
+# auto-confirmed — the counselor verifies exact marks on the call.
+_MARKS_FLOOR: dict[str, int] = {
+    "60–70%": 60,
+    "70–80%": 70,
+    "Above 80%": 80,
+}
+
 # Intermediate study groups. Not every applicant (especially BSMT) is
 # Pre-Medical, so the list covers the common Intermediate streams.
 INTERMEDIATE_TYPES: list[str] = [
@@ -79,3 +95,40 @@ def get_marks_ranges() -> list[str]:
 def get_intermediate_types() -> list[str]:
     """Intermediate study groups (Pre-Medical, Pre-Engineering, ...)."""
     return list(INTERMEDIATE_TYPES)
+
+
+def evaluate_eligibility(course: str, inter_marks: str) -> dict:
+    """Give an instant, provisional eligibility read for the thank-you page.
+
+    BSMT needs Intermediate marks above 50%, DPT above 60%. Marks come in as a
+    coarse band (see MARKS_RANGES), so we compare the band's guaranteed floor
+    against the threshold:
+
+    - band floor >= threshold  -> "eligible" (e.g. "60–70%" clears BSMT's 50%)
+    - "Below 60%" or no marks   -> "unknown" (can't confirm; counselor verifies)
+    - otherwise                 -> "below"   (band sits under the threshold)
+
+    Returns a dict the template renders directly:
+        {status, threshold, course, marks}
+    where status is one of "eligible" | "below" | "unknown". Always safe —
+    an unknown course or empty marks yields "unknown", never an error.
+    """
+    threshold = ELIGIBILITY_THRESHOLDS.get(course)
+    if threshold is None:
+        return {"status": "unknown", "threshold": None, "course": course, "marks": inter_marks}
+
+    floor = _MARKS_FLOOR.get(inter_marks)
+    if floor is None:
+        # "Below 60%" or blank — no reliable floor to compare, stay provisional.
+        status = "unknown"
+    elif floor >= threshold:
+        status = "eligible"
+    else:
+        status = "below"
+
+    return {
+        "status": status,
+        "threshold": threshold,
+        "course": course,
+        "marks": inter_marks,
+    }

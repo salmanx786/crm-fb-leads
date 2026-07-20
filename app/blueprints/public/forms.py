@@ -31,8 +31,8 @@ class AdmissionForm(FlaskForm):
 
     The template drives the 3-step UX; server-side this is one form. Fields
     map 1:1 to Lead columns so the route hands `form`-derived data straight to
-    lead_service.create_lead. Only program, name, and phone are strictly
-    required — academic and guardian fields are Optional so a partially
+    lead_service.create_lead. Only program, first/last name, and phone are
+    strictly required — academic and guardian fields are Optional so a partially
     completed but still useful lead is never lost.
     """
 
@@ -56,9 +56,20 @@ class AdmissionForm(FlaskForm):
     inter_group = SelectField("Intermediate Type", validators=[Optional()])
 
     # --- Step 3: personal / contact ---
-    name = StringField(
-        "Full Name",
-        validators=[InputRequired("Please enter your name."), Length(min=2, max=120)],
+    # Name is captured as two fields; the service composes them into Lead.name.
+    first_name = StringField(
+        "First Name",
+        validators=[
+            InputRequired("Please enter your first name."),
+            Length(min=2, max=60),
+        ],
+    )
+    last_name = StringField(
+        "Last Name",
+        validators=[
+            InputRequired("Please enter your last name."),
+            Length(min=1, max=60),
+        ],
     )
     guardian_name = StringField(
         "Guardian / Parent Name", validators=[Optional(), Length(max=120)]

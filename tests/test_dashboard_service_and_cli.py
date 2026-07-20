@@ -270,17 +270,22 @@ def test_follow_up_state_classifier_matches_filters(app):
 def test_update_lead_changes_fields_and_records_single_event(app):
     """A successful edit updates fields and logs one 'updated' event."""
     # Phone stored already-normalised so resubmitting it isn't seen as a change.
-    lead_id = _make_lead(app, name="Old Name", phone="+919000080001", course="MBA")
+    lead_id = _make_lead(
+        app, first_name="Old", last_name="Name", name="Old Name",
+        phone="+919000080001", course="MBA",
+    )
     with app.app_context():
         lead = db.session.get(Lead, lead_id)
         lead_service.update_lead(
             lead,
-            {"name": "New Name", "phone": lead.phone, "email": lead.email,
-             "city": lead.city, "course": "BCA", "status": "Interested"},
+            {"first_name": "New", "last_name": "Name", "phone": lead.phone,
+             "email": lead.email, "city": lead.city, "course": "BCA",
+             "status": "Interested"},
         )
 
         refreshed = db.session.get(Lead, lead_id)
-        assert refreshed.name == "New Name"
+        assert refreshed.first_name == "New"
+        assert refreshed.name == "New Name"  # composed display value stays in sync
         assert refreshed.course == "BCA"
         assert refreshed.status == "Interested"
 
@@ -289,7 +294,7 @@ def test_update_lead_changes_fields_and_records_single_event(app):
         ).all()
         assert len(updated) == 1
         # Summary lists only the fields that changed, in label order.
-        assert updated[0].description == "Lead updated: Name, Course, Status"
+        assert updated[0].description == "Lead updated: First Name, Course, Status"
 
 
 def test_update_lead_source_maps_to_utm_source(app):
@@ -304,13 +309,17 @@ def test_update_lead_source_maps_to_utm_source(app):
 def test_update_lead_no_change_does_not_record_event(app):
     """Resubmitting identical values is a no-op: no 'updated' event."""
     # All values stored in already-normalised form so resubmitting is a no-op.
-    lead_id = _make_lead(app, name="Same", phone="+919000080003", course="MBA")
+    lead_id = _make_lead(
+        app, first_name="Same", last_name="Name", name="Same Name",
+        phone="+919000080003", course="MBA",
+    )
     with app.app_context():
         lead = db.session.get(Lead, lead_id)
         lead_service.update_lead(
             lead,
-            {"name": "Same", "phone": lead.phone, "email": lead.email,
-             "city": lead.city, "course": "MBA", "status": lead.status},
+            {"first_name": "Same", "last_name": "Name", "phone": lead.phone,
+             "email": lead.email, "city": lead.city, "course": "MBA",
+             "status": lead.status},
         )
         events = db.session.scalars(
             select(TimelineEvent).filter_by(lead_id=lead_id, event_type="updated")

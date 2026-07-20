@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy — MC College of Medical &amp; Allied Health Sciences{% endblock %}
+{% block meta_description %}How MC College of Medical &amp; Allied Health Sciences collects, uses, and protects the information you share through the admissions portal at apply-mccollege.pk.{% endblock %}
+
+{% block head_extra %}
+  {% set WHATSAPP_NUMBER = "923312004658" %}
+  {% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
+  <style>
+    html { scroll-padding-top: 84px; }
+    /* Branded navy band, matching the landing-page hero treatment so the
+       policy header reads as part of the same site. */
+    .hero-band {
+      background-color: #1a365d;
+      background-image:
+        radial-gradient(1200px 480px at 78% -8%, rgba(255,193,7,0.16), transparent 60%),
+        radial-gradient(900px 520px at 0% 100%, rgba(255,255,255,0.10), transparent 55%),
+        linear-gradient(180deg, #1a365d 0%, #17304f 55%, #142942 100%);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+{% set WHATSAPP_NUMBER = "923312004658" %}
+{% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
+
+{# Reusable logo-pair macro — identical treatment to the landing page: both
+   logos at the same height on a light panel with a neutral divider. #}
+{% macro logo_pair(height="h-9", divider="h-8") %}
+  <div class="flex items-center justify-center gap-3">
+    {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
+         alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto">{% endif %}
+    <span class="{{ divider }} w-px bg-[#D9D9D9]"></span>
+    {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
+         alt="Jinnah Sindh Medical University (JSMU)" class="{{ height }} w-auto">{% endif %}
+  </div>
+{% endmacro %}
+
+{# ============================ Sticky Trust Bar ============================ #}
+<div class="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+  <div class="mx-auto flex h-[56px] max-w-3xl items-center justify-center px-4 sm:h-[76px]">
+    <a href="{{ url_for('public.index') }}" aria-label="Back to MC College admissions home">
+      {{ logo_pair(height="h-[42px] sm:h-[60px]", divider="h-[34px] sm:h-[48px]") }}
+    </a>
+  </div>
+</div>
+
+<main class="pt-[56px] sm:pt-[76px]">
+
+  {# ============================ Header band ============================ #}
+  <section class="hero-band px-4 py-12 text-white sm:py-16">
+    <div class="mx-auto max-w-2xl text-center">
+      <span class="inline-block rounded-full bg-[#ffc107] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#1a365d]">
+        Your privacy matters
+      </span>
+      <h1 class="mt-4 text-3xl font-extrabold sm:text-4xl">Privacy Policy</h1>
+      <p class="mt-3 text-sm text-slate-200">
+        How we collect, use, and protect the information you share with us through
+        <span class="font-semibold text-white">apply-mccollege.pk</span>.
+      </p>
+      <p class="mt-2 text-xs text-slate-400">Last updated: {{ current_year }}</p>
+    </div>
+  </section>
+
+  {# ============================ Policy content ============================ #}
+  <section class="px-4 py-10 sm:py-14">
+    <div class="mx-auto max-w-2xl space-y-8">
+
+      <p class="text-sm leading-relaxed text-slate-600">
+        This admissions portal is operated by MC College of Medical &amp; Allied Health
+        Sciences, affiliated with Jinnah Sindh Medical University (JSMU). We respect your
+        privacy and are committed to protecting the personal information you provide when
+        enquiring about admission. This policy explains what we collect, why we collect it,
+        and the choices you have.
+      </p>
+
+      {# --- 1. Information we collect --- #}
+      <div>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-[#1a365d]">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">1</span>
+          Information We Collect
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          When you submit an admission enquiry through this website, we collect the
+          information you choose to provide:
+        </p>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffc107]"></span> Your name</li>
+          <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffc107]"></span> Your phone number</li>
+          <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffc107]"></span> Your email address <span class="text-slate-400">(optional)</span></li>
+          <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffc107]"></span> Your city</li>
+          <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffc107]"></span> The program you are interested in</li>
+        </ul>
+      </div>
+
+      {# --- 2. How we use it --- #}
+      <div>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-[#1a365d]">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">2</span>
+          How We Use Your Information
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          The information you provide is used <span class="font-semibold text-slate-700">only for
+          admission counseling</span> — so our team can contact you, answer your questions, and
+          guide you through the application process for your chosen program. We do not use it for
+          any unrelated purpose.
+        </p>
+      </div>
+
+      {# --- 3. Sharing --- #}
+      <div>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-[#1a365d]">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">3</span>
+          How We Share Your Information
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          Your information may be shared internally with our admission staff so they can
+          follow up on your enquiry. We
+          <span class="font-semibold text-slate-700">never sell your personal information</span>
+          to any third party, and we do not share it for marketing or advertising by others.
+        </p>
+      </div>
+
+      {# --- 4. Cookies & analytics --- #}
+      <div>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-[#1a365d]">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">4</span>
+          Cookies &amp; Analytics
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          We may use cookies and analytics tools to understand how visitors use this website
+          and to improve the experience. These help us measure traffic and page performance.
+          You can disable cookies in your browser settings, though some parts of the site may
+          not work as expected.
+        </p>
+      </div>
+
+      {# --- 5. Data retention & deletion --- #}
+      <div>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-[#1a365d]">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">5</span>
+          Your Choices &amp; Data Deletion
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          You are in control of your information. You can request that we delete the personal
+          information we hold about you at any time by emailing us at the address below. Once we
+          verify your request, we will remove your information from our records, except where we
+          are required to retain it by law.
+        </p>
+      </div>
+
+      {# --- 6. Contact --- #}
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <h2 class="text-lg font-bold text-[#1a365d]">Contact Us</h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          For any privacy questions or to request deletion of your information, email us at:
+        </p>
+        <a href="mailto:admissions@mccollege.edu.pk"
+           class="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17304f]">
+          admissions@mccollege.edu.pk
+        </a>
+      </div>
+
+      <div class="pt-2 text-center">
+        <a href="{{ url_for('public.index') }}"
+           class="inline-flex items-center gap-2 text-sm font-semibold text-[#1a365d] hover:underline">
+          &larr; Back to admissions home
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  {# ============================ Footer ============================ #}
+  <footer class="bg-[#1a365d] px-4 py-10 text-white">
+    <div class="mx-auto max-w-md text-center">
+      <div class="rounded-2xl bg-white p-4">
+        {{ logo_pair(height="h-10") }}
+      </div>
+      <p class="mt-4 text-sm text-slate-200">
+        MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
+      </p>
+
+      <dl class="mt-6 space-y-2 text-sm text-slate-200">
+        <div><a href="tel:+922136684658" class="hover:text-white">021-36684658</a></div>
+        <div><a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener" class="hover:text-white">WhatsApp: +92 331 2004658</a></div>
+        <div><a href="mailto:admission@mccollege.edu.pk" class="hover:text-white">admission@mccollege.edu.pk</a></div>
+        <div class="not-italic">
+          Main Campus: C 177/2, Rameez Raja Road, Block A, North Nazimabad off KDA Chowrangi near Rose Garden, Karachi
+        </div>
+      </dl>
+
+      <p class="mt-6 text-xs text-slate-400">
+        This is an official admissions portal for MC College of Medical &amp; Allied Health Sciences,
+        affiliated with Jinnah Sindh Medical University. Run separately from our main website to
+        process admissions inquiries faster.
+      </p>
+      <p class="mt-2 text-xs text-slate-500">&copy; {{ current_year }} MC College of Medical &amp; Allied Health Sciences.</p>
+    </div>
+  </footer>
+
+</main>
+{% endblock %}

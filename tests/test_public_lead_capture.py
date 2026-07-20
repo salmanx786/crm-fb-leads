@@ -36,7 +36,8 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
         "/admission?utm_source=google&utm_medium=cpc&utm_campaign=summer",
         data={
             "csrf_token": token,
-            "name": "Asha Verma",
+            "first_name": "Asha",
+            "last_name": "Verma",
             "phone": "+91 98765 43210",
             "email": "asha@example.com",
             "city": "Karachi",
@@ -56,22 +57,28 @@ def test_admission_submission_creates_lead_and_timeline(client, app):
         },
     )
 
-    # 3. Success redirects (302) back to the landing page's #admission anchor.
+    # 3. Success redirects (302) to the dedicated thank-you page.
     assert post_resp.status_code == 302
-    assert "/#admission" in post_resp.headers["Location"]
+    assert "/thank-you" in post_resp.headers["Location"]
 
-    # 4a. The flash message is queued in the session.
-    with client.session_transaction() as session:
-        flashes = dict(session.get("_flashes", []))
-    assert "success" in flashes
-    assert "received" in flashes["success"].lower()
+    # 4a. The thank-you page renders the confirmation, personalised with the
+    #     applicant's first name, and reports BSMT eligibility (Above 80% > 50%).
+    ty_resp = client.get("/thank-you")
+    assert ty_resp.status_code == 200
+    ty_body = ty_resp.get_data(as_text=True)
+    assert "Thank you, Asha" in ty_body
+    assert "received successfully" in ty_body
+    assert "15–30 minutes" in ty_body
+    assert "you look eligible" in ty_body.lower()
 
     # 4b. The lead was created with normalised, attributed data.
     with app.app_context():
         leads = db.session.scalars(select(Lead)).all()
         assert len(leads) == 1
         lead = leads[0]
-        assert lead.name == "Asha Verma"
+        assert lead.first_name == "Asha"
+        assert lead.last_name == "Verma"
+        assert lead.name == "Asha Verma"  # composed display value
         assert lead.email == "asha@example.com"  # normalised to lowercase
         assert lead.course == "BSMT"
         assert lead.specialization == "Radiological Imaging"
@@ -103,7 +110,8 @@ def test_admission_submission_rejects_invalid_data(client, app):
         "/admission",
         data={
             "csrf_token": token,
-            "name": "",           # required
+            "first_name": "",     # required
+            "last_name": "",      # required
             "phone": "abc",       # fails the phone pattern
             "email": "not-an-email",
         },
@@ -119,8 +127,55 @@ def test_admission_submission_without_csrf_is_rejected(client, app):
     """A POST with no CSRF token must be refused and persist nothing."""
     resp = client.post(
         "/admission",
-        data={"name": "No Token", "phone": "+91 98765 43210"},
+        data={"first_name": "No", "last_name": "Token", "phone": "+91 98765 43210"},
     )
     assert resp.status_code in (400, 403)
     with app.app_context():
         assert db.session.scalar(select(func.count(Lead.id))) == 0
+
+
+def test_thank_you_without_submission_redirects_home(client):
+    """Visiting /thank-you directly (no prior submission) redirects home."""
+    resp = client.get("/thank-you", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/")
+
+
+def test_thank_you_is_one_shot(client):
+    """The confirmation is consumed once — a second visit redirects home."""
+    token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    client.post(
+        "/admission",
+        data={
+            "csrf_token": token,
+            "first_name": "Bilal",
+            "last_name": "Ahmed",
+            "phone": "+92 300 1112222",
+            "course": "DPT",
+            "inter_marks": "70–80%",
+        },
+    )
+    # First visit shows the page...
+    assert client.get("/thank-you").status_code == 200
+    # ...second visit has nothing left to confirm.
+    assert client.get("/thank-you", follow_redirects=False).status_code == 302
+
+
+def test_thank_you_dpt_below_threshold_message(client):
+    """DPT needs >60%; a "Below 60%" band can't be auto-confirmed."""
+    token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    client.post(
+        "/admission",
+        data={
+            "csrf_token": token,
+            "first_name": "Sana",
+            "last_name": "Khan",
+            "phone": "+92 301 2223333",
+            "course": "DPT",
+            "inter_marks": "Below 60%",
+        },
+    )
+    body = client.get("/thank-you").get_data(as_text=True)
+    assert "Thank you, Sana" in body
+    # "Below 60%" has no reliable floor -> provisional "Eligibility check" card.
+    assert "Eligibility check" in body

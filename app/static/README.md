@@ -43,7 +43,7 @@ Real photos only, no stock.
 
 | File | What it is |
 |------|------------|
-| `favicon.png` | Browser tab icon (can be the MC College mark) |
+| `favicon.svg` | Branded browser-tab icon (navy disc + green ring + "MC" monogram). Shipped by default. The public site automatically prefers the CMS-uploaded MC College logo when one is set. |
 
 ---
 

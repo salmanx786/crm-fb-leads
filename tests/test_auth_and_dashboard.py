@@ -36,7 +36,8 @@ def admin(app):
 def lead(app):
     """A persisted lead created through the service (records a timeline event)."""
     return lead_service.create_lead(
-        {"name": "Rohan Das", "phone": "+91 90000 00000", "email": "rohan@example.com"}
+        {"first_name": "Rohan", "last_name": "Das",
+         "phone": "+91 90000 00000", "email": "rohan@example.com"}
     )
 
 
@@ -172,7 +173,8 @@ def test_edit_lead_updates_fields_and_records_event(client, admin, lead, app):
         f"/dashboard/leads/{lead_id}/edit",
         data={
             "csrf_token": token,
-            "name": "Rohan D.",
+            "first_name": "Rohan",
+            "last_name": "D.",
             "phone": lead.phone,
             "email": lead.email,
             "city": "Pune",
@@ -188,6 +190,7 @@ def test_edit_lead_updates_fields_and_records_event(client, admin, lead, app):
     with app.app_context():
         refreshed = db.session.get(Lead, lead_id)
         assert refreshed.name == "Rohan D."
+        assert refreshed.last_name == "D."
         assert refreshed.city == "Pune"
         assert refreshed.utm_source == "referral"
         assert refreshed.status == "Interested"
@@ -206,7 +209,8 @@ def test_edit_lead_invalid_phone_reraises_form(client, admin, lead, app):
 
     resp = client.post(
         f"/dashboard/leads/{lead_id}/edit",
-        data={"csrf_token": token, "name": "Rohan Das", "phone": "abc", "status": "New"},
+        data={"csrf_token": token, "first_name": "Rohan", "last_name": "Das",
+              "phone": "abc", "status": "New"},
     )
     # Re-renders the form (200), does not redirect, and persists nothing.
     assert resp.status_code == 200
@@ -291,9 +295,9 @@ def test_export_has_header_row_and_all_leads(client, admin, app):
     rows = _export_rows(client)
     # Header matches the documented column order exactly.
     assert rows[0] == [
-        "ID", "Created At", "Name", "Phone", "Email", "City",
-        "Program", "Specialization", "Guardian Name", "Guardian Phone",
-        "Address", "Matric Board", "Matric Marks",
+        "ID", "Created At", "Name", "First Name", "Last Name", "Phone",
+        "Email", "City", "Program", "Specialization", "Guardian Name",
+        "Guardian Phone", "Address", "Matric Board", "Matric Marks",
         "Inter Board", "Inter Marks", "Inter Type",
         "Status", "Source", "Next Follow-up", "Duplicate Count",
     ]
