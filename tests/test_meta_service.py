@@ -69,10 +69,38 @@ def test_hash_user_data_hashes_email_and_phone(meta_on, a_lead):
 
     assert user_data["em"] == [expected_email]
     assert user_data["ph"] == [expected_phone]
+    # Country defaults to "pk" (config) and is hashed like the rest.
+    assert user_data["country"] == [hashlib.sha256("pk".encode()).hexdigest()]
     # Raw PII must never appear in the hashed block.
     serialized = json.dumps(user_data)
     assert "asha@example.com" not in serialized
     assert "9876543210" not in serialized
+
+
+def test_hash_user_data_hashes_name_and_city(meta_on, a_lead):
+    a_lead.first_name = "Asha"
+    a_lead.last_name = "Verma"
+    a_lead.city = "Karachi"
+    db.session.add(a_lead)
+    db.session.commit()
+
+    user_data = meta_service.hash_user_data(a_lead)
+
+    assert user_data["fn"] == [hashlib.sha256("asha".encode()).hexdigest()]
+    assert user_data["ln"] == [hashlib.sha256("verma".encode()).hexdigest()]
+    # City: lowercased, non-alpha stripped, then hashed.
+    assert user_data["ct"] == [hashlib.sha256("karachi".encode()).hexdigest()]
+    # Raw values never appear.
+    serialized = json.dumps(user_data)
+    assert "Asha" not in serialized and "Karachi" not in serialized
+
+
+def test_hash_user_data_omits_country_when_unset(meta_on, a_lead):
+    meta_on.config["META_DEFAULT_COUNTRY"] = ""
+    db.session.add(a_lead)
+    db.session.commit()
+
+    assert "country" not in meta_service.hash_user_data(a_lead)
 
 
 # --- payload --------------------------------------------------------------
@@ -90,6 +118,36 @@ def test_build_payload_shape(meta_on, a_lead):
     assert "em" in payload["data"][0]["user_data"]
     # Test event code from config is included.
     assert payload["test_event_code"] == "TEST123"
+
+
+def test_build_payload_includes_non_hashed_identifiers(meta_on, a_lead):
+    """IP, user agent, fbc and fbp go into user_data in the clear (Meta's
+    rule), and event_source_url is carried through when configured."""
+    meta_on.config["META_EVENT_SOURCE_URL"] = "https://mccollege.edu.pk/"
+    a_lead.ip_address = "203.0.113.7"
+    a_lead.user_agent = "Mozilla/5.0"
+    a_lead.fbc = "fb.1.1700000000000.abc123"
+    a_lead.fbp = "fb.1.1700000000000.987654321"
+    db.session.add(a_lead)
+    db.session.commit()
+
+    entry = meta_service.build_payload(a_lead, "Lead", "evt-9")["data"][0]
+    ud = entry["user_data"]
+
+    assert ud["client_ip_address"] == "203.0.113.7"
+    assert ud["client_user_agent"] == "Mozilla/5.0"
+    assert ud["fbc"] == "fb.1.1700000000000.abc123"
+    assert ud["fbp"] == "fb.1.1700000000000.987654321"
+    assert entry["event_source_url"] == "https://mccollege.edu.pk/"
+
+
+def test_build_payload_omits_event_source_url_when_unset(meta_on, a_lead):
+    meta_on.config["META_EVENT_SOURCE_URL"] = ""
+    db.session.add(a_lead)
+    db.session.commit()
+
+    entry = meta_service.build_payload(a_lead, "Lead", "evt-10")["data"][0]
+    assert "event_source_url" not in entry
 
 
 # --- successful send ------------------------------------------------------

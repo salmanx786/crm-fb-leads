@@ -7,7 +7,13 @@ class Lead(BaseModel):
 
     __tablename__ = "leads"
 
-    # Applicant-provided fields
+    # Applicant-provided fields.
+    # `first_name`/`last_name` are the source of truth captured by the form;
+    # `name` holds the composed "First Last" display value and remains the
+    # single field the dashboard listing, search, CSV, duplicate detection, and
+    # Meta events read — so those paths don't need to know the name is split.
+    first_name = db.Column(db.String(60), nullable=True)
+    last_name = db.Column(db.String(60), nullable=True)
     name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(255), nullable=True)
@@ -41,6 +47,13 @@ class Lead(BaseModel):
     referrer = db.Column(db.String(512), nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)  # supports IPv6
     user_agent = db.Column(db.String(512), nullable=True)
+    # Meta (Facebook) click and browser identifiers, captured from the `_fbc`
+    # and `_fbp` cookies the Pixel sets. Stored on the lead (not just the
+    # request) because meta_service rebuilds the Conversions API payload from
+    # the lead on retry, long after the request cookies are gone. Sending them
+    # markedly raises event match quality.
+    fbc = db.Column(db.String(255), nullable=True)
+    fbp = db.Column(db.String(255), nullable=True)
 
     # Management. Stored as a plain string; valid values live in
     # app.constants.LEAD_STATUSES so we can add stages without a migration.

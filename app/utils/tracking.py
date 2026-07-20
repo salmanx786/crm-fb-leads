@@ -5,6 +5,7 @@ not need to know how Flask exposes headers, proxies, or query strings.
 """
 from __future__ import annotations  # 3.9-safe PEP 604 unions in annotations
 
+import time
 from typing import Any
 
 
@@ -15,6 +16,23 @@ def get_client_ip(request: Any) -> str | None:
         # First entry is the original client.
         return forwarded.split(",")[0].strip()
     return request.remote_addr
+
+
+def get_fbc(request: Any) -> str | None:
+    """Meta click id (`fbc`) for the Conversions API.
+
+    Prefer the `_fbc` cookie the Pixel sets. If it is absent but the URL still
+    carries an `fbclid` (first landing, before the Pixel has written the
+    cookie), synthesise the value in Meta's required format:
+    ``fb.1.<creation_ms>.<fbclid>``.
+    """
+    cookie_fbc = request.cookies.get("_fbc")
+    if cookie_fbc:
+        return cookie_fbc
+    fbclid = request.args.get("fbclid")
+    if fbclid:
+        return f"fb.1.{int(time.time() * 1000)}.{fbclid}"
+    return None
 
 
 def extract_tracking(request: Any) -> dict[str, str | None]:
@@ -31,4 +49,7 @@ def extract_tracking(request: Any) -> dict[str, str | None]:
         "referrer": request.referrer,
         "ip_address": get_client_ip(request),
         "user_agent": request.headers.get("User-Agent"),
+        # Meta match-quality identifiers (see meta_service.build_payload).
+        "fbc": get_fbc(request),
+        "fbp": request.cookies.get("_fbp"),
     }

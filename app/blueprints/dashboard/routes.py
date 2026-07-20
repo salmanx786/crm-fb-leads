@@ -23,7 +23,14 @@ from app.constants import LEAD_STATUSES
 from app.services import dashboard_service, lead_service
 from app.services.lead_service import LeadValidationError
 
-from .forms import BulkActionForm, FollowUpForm, LeadEditForm, NoteForm, StatusForm
+from .forms import (
+    BulkActionForm,
+    FollowUpForm,
+    LeadEditForm,
+    MetaSettingsForm,
+    NoteForm,
+    StatusForm,
+)
 
 # Follow-up filter options surfaced as toggle links on the leads list.
 # (value, label) — value matches dashboard_service.list_leads(follow_up=...).
@@ -40,6 +47,8 @@ EXPORT_COLUMNS = [
     "ID",
     "Created At",
     "Name",
+    "First Name",
+    "Last Name",
     "Phone",
     "Email",
     "City",
@@ -75,6 +84,8 @@ def _lead_csv_row(lead, duplicate_count):
         lead.id,
         _iso(lead.created_at),
         lead.name or "",
+        lead.first_name or "",
+        lead.last_name or "",
         lead.phone or "",
         lead.email or "",
         lead.city or "",
@@ -351,6 +362,50 @@ def bulk_action():
         flash("Could not apply bulk action. Please try again.", "error")
 
     return redirect(url_for("dashboard.leads"))
+
+
+@dashboard_bp.route("/settings/meta", methods=["GET", "POST"])
+@login_required
+def meta_settings():
+    """View and save the Meta (Facebook) Conversions API settings.
+
+    Thin: on GET, prefill the form from resolved settings (the access token is
+    never prefilled — only whether one exists is shown). On POST, hand the raw
+    form values to settings_service, which owns the "blank token keeps the
+    stored one" rule and the transaction boundary.
+    """
+    from app.services import settings_service
+
+    view = settings_service.meta_settings_view()
+    form = MetaSettingsForm()
+
+    if form.validate_on_submit():
+        settings_service.save_meta_settings(
+            {
+                "enabled": form.enabled.data,
+                "pixel_id": form.pixel_id.data,
+                "access_token": form.access_token.data,
+                "test_event_code": form.test_event_code.data,
+                "default_country": form.default_country.data,
+                "event_source_url": form.event_source_url.data,
+            }
+        )
+        flash("Meta settings saved.", "success")
+        return redirect(url_for("dashboard.meta_settings"))
+
+    if request.method == "GET":
+        # Prefill non-secret fields; the token field stays intentionally empty.
+        form.enabled.data = view["enabled"]
+        form.pixel_id.data = view["pixel_id"]
+        form.test_event_code.data = view["test_event_code"]
+        form.default_country.data = view["default_country"]
+        form.event_source_url.data = view["event_source_url"]
+
+    return render_template(
+        "dashboard/settings_meta.html",
+        form=form,
+        has_access_token=view["has_access_token"],
+    )
 
 
 def _current_user_id():

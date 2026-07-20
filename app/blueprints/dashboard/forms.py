@@ -1,7 +1,9 @@
 """Dashboard action forms (CSRF-protected)."""
 from flask_wtf import FlaskForm
 from wtforms import (
+    BooleanField,
     DateTimeLocalField,
+    PasswordField,
     SelectField,
     StringField,
     TextAreaField,
@@ -64,9 +66,19 @@ class LeadEditForm(FlaskForm):
     enforced: the project deliberately allows duplicate phone/email.
     """
 
-    name = StringField(
-        "Name",
-        validators=[DataRequired("Please enter the lead's name."), Length(min=2, max=120)],
+    first_name = StringField(
+        "First Name",
+        validators=[
+            DataRequired("Please enter the lead's first name."),
+            Length(min=2, max=60),
+        ],
+    )
+    last_name = StringField(
+        "Last Name",
+        validators=[
+            DataRequired("Please enter the lead's last name."),
+            Length(min=1, max=60),
+        ],
     )
     phone = StringField(
         "Phone",
@@ -137,4 +149,35 @@ class BulkActionForm(FlaskForm):
         "Follow-up date",
         format=FOLLOW_UP_INPUT_FORMAT,
         validators=[Optional()],
+    )
+
+
+class MetaSettingsForm(FlaskForm):
+    """Manage the Meta (Facebook) Conversions API settings from the dashboard.
+
+    Field names map to settings_service.save_meta_settings keys. The access
+    token is a PasswordField that is never pre-filled: leaving it blank keeps
+    the stored token, so the secret never has to round-trip through the page.
+    """
+
+    enabled = BooleanField("Enable Meta tracking", validators=[Optional()])
+    pixel_id = StringField(
+        "Pixel ID",
+        validators=[Optional(), Regexp(r"^\d*$", message="Pixel ID is numeric."),
+                    Length(max=32)],
+    )
+    access_token = PasswordField(
+        "Access token",
+        validators=[Optional(), Length(max=1024)],
+    )
+    test_event_code = StringField(
+        "Test event code", validators=[Optional(), Length(max=64)]
+    )
+    default_country = StringField(
+        "Default country (2-letter)",
+        validators=[Optional(), Regexp(r"^[A-Za-z]{0,2}$",
+                    message="Use a 2-letter country code, e.g. pk.")],
+    )
+    event_source_url = StringField(
+        "Event source URL", validators=[Optional(), Length(max=512)]
     )

@@ -30,12 +30,25 @@ class LeadValidationError(ValueError):
         super().__init__("Lead validation failed")
 
 
+def compose_name(data: dict) -> str:
+    """Build the composed display name from a lead payload.
+
+    Prefers the split `first_name`/`last_name` (the form's source of truth) and
+    falls back to a pre-composed `name` — so both the public form and callers
+    that pass a single `name` (e.g. tests, imports) work through one path.
+    """
+    first = (data.get("first_name") or "").strip()
+    last = (data.get("last_name") or "").strip()
+    composed = " ".join(part for part in (first, last) if part)
+    return composed or (data.get("name") or "").strip()
+
+
 def validate_lead_payload(data: dict) -> dict[str, str]:
     """Return a dict of validation errors (empty if the payload is valid)."""
     errors: dict[str, str] = {}
 
-    if not is_nonempty(data.get("name", ""), min_len=2):
-        errors["name"] = "Please enter your full name."
+    if not is_nonempty(compose_name(data), min_len=2):
+        errors["name"] = "Please enter your first and last name."
 
     if not is_valid_phone(data.get("phone", "")):
         errors["phone"] = "Please enter a valid phone number."
@@ -74,7 +87,9 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
 
     tracking = tracking or {}
     lead = Lead(
-        name=clean_str(data.get("name"), 120),
+        first_name=clean_str(data.get("first_name"), 60),
+        last_name=clean_str(data.get("last_name"), 60),
+        name=clean_str(compose_name(data), 120),
         phone=normalize_phone(data.get("phone")),
         email=normalize_email(data.get("email")),
         city=clean_str(data.get("city"), 120),
@@ -99,6 +114,8 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
         referrer=clean_str(tracking.get("referrer"), 512),
         ip_address=clean_str(tracking.get("ip_address"), 45),
         user_agent=clean_str(tracking.get("user_agent"), 512),
+        fbc=clean_str(tracking.get("fbc"), 255),
+        fbp=clean_str(tracking.get("fbp"), 255),
     )
     db.session.add(lead)
     db.session.flush()  # assign lead.id before writing the timeline event
@@ -124,7 +141,8 @@ def get_lead(lead_id: int) -> Optional[Lead]:
 # order. Internal/tracking fields (ip_address, user_agent, utm_medium/campaign,
 # referrer, timestamps) are deliberately not editable here.
 _EDIT_LABELS = {
-    "name": "Name",
+    "first_name": "First Name",
+    "last_name": "Last Name",
     "phone": "Phone",
     "email": "Email",
     "city": "City",
@@ -154,7 +172,8 @@ def update_lead(lead: Lead, data: dict, actor_id: Optional[int] = None) -> Lead:
     # Normalise candidates the same way create_lead does. Required fields
     # (name/phone) fall back to the current value when submitted blank.
     candidates = {
-        "name": clean_str(data.get("name"), 120) or lead.name,
+        "first_name": clean_str(data.get("first_name"), 60) or lead.first_name,
+        "last_name": clean_str(data.get("last_name"), 60) or lead.last_name,
         "phone": normalize_phone(data.get("phone")) or lead.phone,
         "email": normalize_email(data.get("email")),
         "city": clean_str(data.get("city"), 120),
@@ -172,6 +191,13 @@ def update_lead(lead: Lead, data: dict, actor_id: Optional[int] = None) -> Lead:
     status_changed = "status" in changed
     for field in changed:
         setattr(lead, field, candidates[field])
+
+    # Keep the composed display name in sync when either part changed.
+    if "first_name" in changed or "last_name" in changed:
+        lead.name = clean_str(
+            compose_name({"first_name": lead.first_name, "last_name": lead.last_name}),
+            120,
+        )
 
     summary = ", ".join(_EDIT_LABELS[f] for f in changed)
     _record_event(lead, "updated", f"Lead updated: {summary}", actor_id)
@@ -402,6 +428,8 @@ def bulk_action(
 def _as_dict(lead: Lead) -> dict:
     """Current editable values, used to backfill partial update payloads."""
     return {
+        "first_name": lead.first_name,
+        "last_name": lead.last_name,
         "name": lead.name,
         "phone": lead.phone,
         "email": lead.email,

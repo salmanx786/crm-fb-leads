@@ -43,14 +43,28 @@ _DEFAULT_TIMEOUT = 10  # seconds; keep short so a slow Meta never stalls a reque
 # --- config helpers -------------------------------------------------------
 
 def _config() -> dict[str, Any]:
-    """Read Meta settings from the active app config."""
+    """Resolve the active Meta settings.
+
+    Admin-editable values (enable toggle, pixel id, access token, test event
+    code, country, source url) come from settings_service, which falls back to
+    app.config / env when the dashboard has saved nothing. API version and
+    timeout stay env-only — they are deployment details, not day-to-day knobs.
+    """
+    from app.services import settings_service as s
+
     return {
-        "enabled": current_app.config.get("META_ENABLED", False),
-        "pixel_id": current_app.config.get("META_PIXEL_ID"),
-        "access_token": current_app.config.get("META_ACCESS_TOKEN"),
-        "test_event_code": current_app.config.get("META_TEST_EVENT_CODE"),
+        "enabled": s.get_bool(s.META_ENABLED),
+        "pixel_id": s.get_str(s.META_PIXEL_ID),
+        "access_token": s.get_str(s.META_ACCESS_TOKEN),
+        "test_event_code": s.get_str(s.META_TEST_EVENT_CODE),
         "api_version": current_app.config.get("META_API_VERSION", _DEFAULT_GRAPH_VERSION),
         "timeout": current_app.config.get("META_TIMEOUT", _DEFAULT_TIMEOUT),
+        # 2-letter country used to hash a `country` identifier. Improves match
+        # quality for a single-country audience.
+        "default_country": s.get_str(s.META_DEFAULT_COUNTRY).strip(),
+        # Absolute URL of the page the conversion happened on. Sent as
+        # event_source_url when configured; omitted otherwise.
+        "event_source_url": s.get_str(s.META_EVENT_SOURCE_URL).strip(),
     }
 
 
@@ -73,8 +87,11 @@ def _normalise_phone(phone: str) -> str:
 def hash_user_data(lead: Lead) -> dict[str, list[str]]:
     """Build Meta's hashed ``user_data`` block from a lead.
 
-    Only hashed identifiers leave this function. Raw email/phone are never
-    included. Keys follow Meta's field names (em, ph).
+    Only hashed identifiers leave this function. Raw PII is never included.
+    Keys follow Meta's field names: em (email), ph (phone), fn (first name),
+    ln (last name), ct (city), country. Every value that carries PII is
+    SHA-256 hashed after Meta's normalisation (lowercase + trim). Each extra
+    matched field raises the event's match quality.
     """
     user_data: dict[str, list[str]] = {}
     if lead.email:
@@ -83,6 +100,20 @@ def hash_user_data(lead: Lead) -> dict[str, list[str]]:
         normalised = _normalise_phone(lead.phone)
         if normalised:
             user_data["ph"] = [_sha256(normalised)]
+    if lead.first_name:
+        user_data["fn"] = [_sha256(lead.first_name)]
+    if lead.last_name:
+        user_data["ln"] = [_sha256(lead.last_name)]
+    if lead.city:
+        # Meta expects the city with spaces/punctuation removed before hashing.
+        city = "".join(ch for ch in lead.city.lower() if ch.isalpha())
+        if city:
+            user_data["ct"] = [_sha256(city)]
+
+    country = _config()["default_country"]
+    if country:
+        user_data["country"] = [_sha256(country)]
+
     return user_data
 
 
@@ -98,20 +129,35 @@ def build_payload(
     if event_time is None:
         event_time = int(datetime.utcnow().timestamp())
 
+    user_data = hash_user_data(lead)
+    # Non-hashed identifiers. Meta requires these in the clear (they are not
+    # PII in Meta's model) and they are among the strongest matching signals.
+    if lead.ip_address:
+        user_data["client_ip_address"] = lead.ip_address
+    if lead.user_agent:
+        user_data["client_user_agent"] = lead.user_agent
+    if lead.fbc:
+        user_data["fbc"] = lead.fbc
+    if lead.fbp:
+        user_data["fbp"] = lead.fbp
+
     data_entry: dict[str, Any] = {
         "event_name": event_name,
         "event_time": event_time,
         "event_id": event_id,
         "action_source": "website",
-        "user_data": hash_user_data(lead),
+        "user_data": user_data,
     }
+
+    cfg = _config()
+    if cfg["event_source_url"]:
+        data_entry["event_source_url"] = cfg["event_source_url"]
 
     payload: dict[str, Any] = {"data": [data_entry]}
 
     # Test events surface in Meta's Test Events tool without affecting metrics.
-    test_code = _config()["test_event_code"]
-    if test_code:
-        payload["test_event_code"] = test_code
+    if cfg["test_event_code"]:
+        payload["test_event_code"] = cfg["test_event_code"]
 
     return payload
 

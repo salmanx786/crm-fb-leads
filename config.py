@@ -63,6 +63,12 @@ class Config:
     META_TEST_EVENT_CODE = os.environ.get("META_TEST_EVENT_CODE", "")
     # Graph API version used to build the endpoint URL.
     META_API_VERSION = os.environ.get("META_API_VERSION", "v19.0")
+    # 2-letter country code hashed into every event's user_data to lift match
+    # quality for a single-country audience. Default "pk" (Pakistan) matches the
+    # 03XX phone format the form expects; clear or override for other markets.
+    META_DEFAULT_COUNTRY = os.environ.get("META_DEFAULT_COUNTRY", "pk")
+    # Absolute URL of the landing page, sent as event_source_url. Optional.
+    META_EVENT_SOURCE_URL = os.environ.get("META_EVENT_SOURCE_URL", "")
     # Per-request timeout (seconds) so a slow Meta never blocks a lead write.
     META_TIMEOUT = int(os.environ.get("META_TIMEOUT", "10"))
     # Delivery strategy: "sync" sends inline (today). A future background queue

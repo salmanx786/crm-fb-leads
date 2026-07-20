@@ -67,13 +67,33 @@ def _register_error_handlers(app: Flask) -> None:
 
 
 def _register_context_processors(app: Flask) -> None:
+    import uuid
     from datetime import datetime
 
     @app.context_processor
     def inject_globals() -> dict:
         # `current_year` is used in the footer; injected here so templates
         # don't need each route to pass it.
-        return {"current_year": datetime.utcnow().year}
+        #
+        # `meta_pixel_id` / `meta_event_id` drive the browser Meta Pixel in
+        # base.html. The pixel id is read from config (never hardcoded), so it
+        # only fires where META_PIXEL_ID is set — dev and tests stay silent.
+        # A fresh event_id per request lets a browser event be deduplicated
+        # against the matching server-side Conversions API event that shares
+        # the same id (see app/services/meta_service.py).
+        # Pixel id resolves through settings_service (dashboard value, else
+        # env), so enabling the pixel from the admin UI lights up the browser
+        # tag too. Only fire the browser pixel when Meta is enabled.
+        from app.services import settings_service
+
+        pixel_id = ""
+        if settings_service.get_bool(settings_service.META_ENABLED):
+            pixel_id = settings_service.get_str(settings_service.META_PIXEL_ID)
+        return {
+            "current_year": datetime.utcnow().year,
+            "meta_pixel_id": pixel_id,
+            "meta_event_id": uuid.uuid4().hex,
+        }
 
 
 def _register_cli(app: Flask) -> None:

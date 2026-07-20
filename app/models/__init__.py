@@ -1,6 +1,7 @@
 from app.models.user import User
 from app.models.lead import Lead, LeadNote, TimelineEvent
 from app.models.meta_event import MetaEvent
+from app.models.app_setting import AppSetting
 from app.models.site_content import FaqItem, GalleryItem, SiteContent
 
 __all__ = [
@@ -9,6 +10,7 @@ __all__ = [
     "LeadNote",
     "TimelineEvent",
     "MetaEvent",
+    "AppSetting",
     "SiteContent",
     "GalleryItem",
     "FaqItem",
