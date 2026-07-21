@@ -10,8 +10,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, Length, Optional, Regexp
 
-from app.constants import LEAD_STATUSES
-from app.services.reference_service import get_courses
+from app.services.reference_service import get_courses, get_statuses
 
 # Accepts digits, spaces, +, -, and parentheses; 7–20 chars. Matches the
 # public AdmissionForm so a lead's phone validates identically on edit.
@@ -23,13 +22,14 @@ FOLLOW_UP_INPUT_FORMAT = "%Y-%m-%dT%H:%M"
 
 
 class StatusForm(FlaskForm):
-    """Change a lead's status. Choices are the canonical status list."""
+    """Change a lead's status. Choices come from the admin-editable status
+    list (status_service via reference_service), resolved per request."""
 
-    status = SelectField(
-        "Status",
-        choices=[(s, s) for s in LEAD_STATUSES],
-        validators=[DataRequired()],
-    )
+    status = SelectField("Status", validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status.choices = [(s, s) for s in get_statuses()]
 
 
 class NoteForm(FlaskForm):
@@ -95,11 +95,7 @@ class LeadEditForm(FlaskForm):
     course = SelectField("Course", validators=[Optional()])
     # "Source" is stored as utm_source on the model.
     utm_source = StringField("Source", validators=[Optional(), Length(max=120)])
-    status = SelectField(
-        "Status",
-        choices=[(s, s) for s in LEAD_STATUSES],
-        validators=[DataRequired()],
-    )
+    status = SelectField("Status", validators=[DataRequired()])
     # "Notes" maps to the lead's free-text message field.
     message = TextAreaField("Notes", validators=[Optional(), Length(max=2000)])
 
@@ -110,6 +106,9 @@ class LeadEditForm(FlaskForm):
         self.course.choices = [("", "Select a course")] + [
             (c, c) for c in get_courses()
         ]
+        # Status choices come from the admin-editable status_service at request
+        # time (not class-definition time) so edits take effect immediately.
+        self.status.choices = [(s, s) for s in get_statuses()]
 
 
 # Bulk action choices surfaced in the leads-list dropdown. Values match
@@ -142,7 +141,6 @@ class BulkActionForm(FlaskForm):
     )
     status = SelectField(
         "Status",
-        choices=[("", "Select a status")] + [(s, s) for s in LEAD_STATUSES],
         validators=[Optional()],
     )
     next_follow_up_at = DateTimeLocalField(
@@ -150,6 +148,13 @@ class BulkActionForm(FlaskForm):
         format=FOLLOW_UP_INPUT_FORMAT,
         validators=[Optional()],
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Status choices from the admin-editable status_service (request-time).
+        self.status.choices = [("", "Select a status")] + [
+            (s, s) for s in get_statuses()
+        ]
 
 
 class MetaSettingsForm(FlaskForm):

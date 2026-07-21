@@ -11,10 +11,9 @@ from datetime import datetime, timedelta
 import click
 from flask import Flask
 
-from app.constants import LEAD_STATUSES
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
-from app.services import user_service
+from app.services import status_service, user_service
 from app.services.user_service import UserAlreadyExistsError
 
 # Sample data pools for seeding. Local-development only.
@@ -63,6 +62,20 @@ def register_commands(app: Flask) -> None:
 
         click.echo(f"Admin created: {user.name} <{user.email}>")
 
+    @app.cli.command("seed-statuses")
+    def seed_statuses() -> None:
+        """Seed the lead-status list from defaults if the table is empty.
+
+        Idempotent — safe to run on every deploy. Reproduces the historical
+        statuses and their Meta-event mapping so behaviour is unchanged until an
+        admin edits them in the dashboard.
+        """
+        count = status_service.seed_defaults()
+        if count:
+            click.echo(f"Seeded {count} default lead statuses.")
+        else:
+            click.echo("Lead statuses already present; nothing to seed.")
+
     @app.cli.command("seed-demo-data")
     @click.option("--count", default=50, show_default=True, help="Number of demo leads.")
     def seed_demo_data(count: int) -> None:
@@ -81,11 +94,15 @@ def register_commands(app: Flask) -> None:
                 return
 
         now = datetime.utcnow()
+        # Ensure statuses exist (fresh dev DBs may not be seeded yet), then draw
+        # demo statuses from the live, admin-editable list.
+        status_service.seed_defaults()
+        statuses = status_service.get_statuses()
         created = 0
         for _ in range(count):
             first = random.choice(_DEMO_FIRST)
             last = random.choice(_DEMO_LAST)
-            status = random.choice(LEAD_STATUSES)
+            status = random.choice(statuses)
             # Spread creation over the last ~45 days.
             age = timedelta(
                 days=random.randint(0, 45),

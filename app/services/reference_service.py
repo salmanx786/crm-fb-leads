@@ -3,8 +3,6 @@
 Keeps presentational reference data in one place so routes/templates ask a
 service for their dropdown options instead of hard-coding them.
 """
-from app.constants import LEAD_STATUSES
-
 # Programs offered — used by the landing page form and dashboard filters.
 COURSES: list[str] = [
     "DPT",
@@ -68,8 +66,14 @@ INTERMEDIATE_TYPES: list[str] = [
 
 
 def get_statuses() -> list[str]:
-    """All valid lead statuses, in lifecycle order."""
-    return list(LEAD_STATUSES)
+    """All valid lead statuses, in lifecycle order.
+
+    Delegates to status_service (the admin-editable DB source of truth). The
+    ``LEAD_STATUSES`` constant is only the one-time seed for that table.
+    """
+    from app.services import status_service
+
+    return status_service.get_statuses()
 
 
 def get_courses() -> list[str]:

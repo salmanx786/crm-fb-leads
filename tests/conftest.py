@@ -14,6 +14,12 @@ def app():
     app = create_app("testing")
     with app.app_context():
         _db.create_all()
+        # Seed the editable lead statuses, mirroring production (init_db seeds
+        # them). Status validation and dropdowns are now DB-backed, so tests run
+        # against the same seeded lifecycle a real deployment has.
+        from app.services import status_service
+
+        status_service.seed_defaults()
         yield app
         _db.session.remove()
         _db.drop_all()

@@ -19,8 +19,7 @@ from flask import (
 )
 from flask_login import login_required
 
-from app.constants import LEAD_STATUSES
-from app.services import dashboard_service, lead_service
+from app.services import dashboard_service, lead_service, reference_service
 from app.services.lead_service import LeadValidationError
 
 from .forms import (
@@ -140,7 +139,7 @@ def leads():
         duplicate_counts=dashboard_service.duplicate_counts(pagination.items),
         follow_up_state=dashboard_service.follow_up_state,
         bulk_form=BulkActionForm(),
-        statuses=LEAD_STATUSES,
+        statuses=reference_service.get_statuses(),
         follow_up_filters=FOLLOW_UP_FILTERS,
         search=search or "",
         active_status=status or "",
@@ -406,6 +405,88 @@ def meta_settings():
         form=form,
         has_access_token=view["has_access_token"],
     )
+
+
+@dashboard_bp.route("/settings/statuses", methods=["GET"])
+@login_required
+def lead_statuses():
+    """Manage the editable lead-status list and each status's Meta mapping.
+
+    Read-only render here; every mutation is a small focused POST below that
+    delegates to status_service and redirects back (Post/Redirect/Get), so a
+    refresh never re-submits. All are login-gated and CSRF-protected.
+    """
+    from app.services import status_service
+
+    return render_template(
+        "dashboard/settings_statuses.html",
+        statuses=status_service.get_status_rows(),
+        meta_choices=status_service.META_EVENT_CHOICES,
+        leads_using=status_service.leads_using,
+    )
+
+
+@dashboard_bp.route("/settings/statuses/add", methods=["POST"])
+@login_required
+def add_lead_status():
+    """Create a new lead status with an optional Meta-event mapping."""
+    from app.services import status_service
+    from app.services.status_service import StatusError
+
+    try:
+        status_service.add_status(
+            request.form.get("name", ""),
+            request.form.get("meta_event") or None,
+        )
+        flash("Status added.", "success")
+    except StatusError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("dashboard.lead_statuses"))
+
+
+@dashboard_bp.route("/settings/statuses/<int:status_id>/rename", methods=["POST"])
+@login_required
+def rename_lead_status(status_id: int):
+    """Rename a status; the change cascades to every lead using the old name."""
+    from app.services import status_service
+    from app.services.status_service import StatusError
+
+    try:
+        status_service.rename_status(status_id, request.form.get("name", ""))
+        flash("Status renamed.", "success")
+    except StatusError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("dashboard.lead_statuses"))
+
+
+@dashboard_bp.route("/settings/statuses/<int:status_id>/meta", methods=["POST"])
+@login_required
+def set_lead_status_meta(status_id: int):
+    """Change which Meta event a status reports (or clear it)."""
+    from app.services import status_service
+    from app.services.status_service import StatusError
+
+    try:
+        status_service.set_meta_event(status_id, request.form.get("meta_event") or None)
+        flash("Meta mapping updated.", "success")
+    except StatusError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("dashboard.lead_statuses"))
+
+
+@dashboard_bp.route("/settings/statuses/<int:status_id>/delete", methods=["POST"])
+@login_required
+def delete_lead_status(status_id: int):
+    """Delete a status (blocked while leads use it, or if it's the default)."""
+    from app.services import status_service
+    from app.services.status_service import StatusError
+
+    try:
+        status_service.delete_status(status_id)
+        flash("Status deleted.", "success")
+    except StatusError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("dashboard.lead_statuses"))
 
 
 def _current_user_id():

@@ -8,10 +8,11 @@ from typing import Optional
 
 from sqlalchemy import select
 
-from app.constants import DEFAULT_LEAD_STATUS, is_valid_status
+from app.constants import DEFAULT_LEAD_STATUS
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
 from app.services import meta_service
+from app.services.status_service import is_valid_status
 from app.utils.helpers import clean_str, normalize_email, normalize_phone
 from app.utils.logger import get_logger
 from app.utils.validators import is_valid_email, is_valid_phone, is_nonempty

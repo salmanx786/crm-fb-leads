@@ -14,8 +14,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from app.extensions import db
+from app.services import content_service, status_service
 
 app = create_app()
 with app.app_context():
     db.create_all()
     print("Database tables created.")
+    # Seed default editable content (FAQ) so the CMS isn't empty on first run.
+    # Idempotent: a no-op once content exists, so re-running is safe.
+    content_service.seed_defaults()
+    # Seed the editable lead statuses from the legacy constants on first run.
+    # Idempotent: a no-op once any status exists, so re-running is safe.
+    seeded = status_service.seed_defaults()
+    if seeded:
+        print(f"Seeded {seeded} default lead statuses.")

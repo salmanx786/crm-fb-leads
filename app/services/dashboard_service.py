@@ -11,9 +11,9 @@ from typing import Optional
 
 from sqlalchemy import func, or_, select
 
-from app.constants import is_valid_status
 from app.extensions import db
 from app.models import Lead
+from app.services.status_service import is_valid_status
 
 
 # --- date boundaries ------------------------------------------------------

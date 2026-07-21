@@ -28,7 +28,7 @@ from typing import Any, Optional
 import requests
 from flask import current_app
 
-from app.constants import meta_event_for
+from app.constants import meta_event_for as _const_meta_event_for
 from app.extensions import db
 from app.models import Lead, MetaEvent
 from app.utils.logger import get_logger
@@ -304,6 +304,23 @@ def get_dispatcher() -> MetaDispatcher:
 
 # --- public entry point ---------------------------------------------------
 
+def _resolve_event(trigger: str) -> Optional[str]:
+    """Map a CRM trigger to the Meta event name to send, or None if untracked.
+
+    Two kinds of trigger reach here:
+    - "lead_created": the synthetic on-creation trigger. It isn't a lead status,
+      so it's resolved from the static constants map.
+    - a lead status name (e.g. "Interested"): resolved from the admin-editable
+      status_service (DB), so renaming a status or changing its Meta mapping in
+      the dashboard takes effect immediately, with no code change.
+    """
+    if trigger == "lead_created":
+        return _const_meta_event_for(trigger)
+    # Any other trigger is a lead status — its mapping is admin-managed.
+    from app.services import status_service
+    return status_service.meta_event_for(trigger)
+
+
 def track_event(lead: Lead, trigger: str) -> Optional[MetaEvent]:
     """Fire a conversion event for a lead trigger, if one is mapped.
 
@@ -319,7 +336,7 @@ def track_event(lead: Lead, trigger: str) -> Optional[MetaEvent]:
     if not cfg["enabled"]:
         return None
 
-    event_name = meta_event_for(trigger)
+    event_name = _resolve_event(trigger)
     if not event_name:
         return None  # trigger isn't in the mapping — nothing to send
 

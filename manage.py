@@ -14,12 +14,15 @@ app = create_app()
 @app.cli.command("init-db")
 def init_db() -> None:
     """Create all tables directly (quick local bootstrap without migrations)."""
-    from app.services import content_service
+    from app.services import content_service, status_service
 
     with app.app_context():
         db.create_all()
         # Seed default, editable FAQ content so the CMS isn't empty on first run.
         content_service.seed_defaults()
+        # Seed the lead statuses + their Meta mapping so dropdowns work on first
+        # run and behave exactly like the old hardcoded list until edited.
+        status_service.seed_defaults()
     click.echo("Database tables created.")
 
 

@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Lead Statuses — MC College{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Lead statuses</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      These are the stages a lead moves through after submitting the form. Add,
+      rename, or remove them here. For each status you can choose which standard
+      Meta (Facebook) event is reported when a lead reaches it — this is how Meta
+      learns which leads are valuable and sends you better ones. Choose
+      <span class="font-medium">“Don't send to Meta”</span> for internal-only
+      stages like Spam.
+    </p>
+  </div>
+
+  {# ---- Existing statuses ---- #}
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Reports to Meta as</th>
+          <th class="px-4 py-3 text-right">In use</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for s in statuses %}
+        {% set used = leads_using(s.name) %}
+        <tr class="align-middle">
+          {# Rename (inline form) + Meta mapping share one row, but are separate
+             forms so each saves independently. #}
+          <td class="px-4 py-3">
+            <form method="POST" action="{{ url_for('dashboard.rename_lead_status', status_id=s.id) }}"
+                  class="flex items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input name="name" value="{{ s.name }}" maxlength="64"
+                     class="w-40 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+              {% if s.is_protected %}
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500" title="Default status — can't be deleted">Default</span>
+              {% endif %}
+              <button type="submit" class="rounded-md px-2 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">Save</button>
+            </form>
+          </td>
+          <td class="px-4 py-3">
+            <form method="POST" action="{{ url_for('dashboard.set_lead_status_meta', status_id=s.id) }}"
+                  class="flex items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="meta_event"
+                      class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                <option value="" {{ 'selected' if not s.meta_event else '' }}>Don't send to Meta</option>
+                {% for event in meta_choices %}
+                  <option value="{{ event }}" {{ 'selected' if s.meta_event == event else '' }}>{{ event }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="rounded-md px-2 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">Save</button>
+            </form>
+          </td>
+          <td class="px-4 py-3 text-right text-slate-500">{{ used }}</td>
+          <td class="px-4 py-3 text-right">
+            {% if s.is_protected %}
+              <span class="text-xs text-slate-300" title="Default status can't be deleted">—</span>
+            {% elif used %}
+              <span class="text-xs text-slate-400" title="{{ used }} lead(s) use this — rename it or move those leads first">In use</span>
+            {% else %}
+              <form method="POST" action="{{ url_for('dashboard.delete_lead_status', status_id=s.id) }}"
+                    onsubmit="return confirm('Delete the “{{ s.name }}” status?');" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="rounded-md px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">Delete</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ---- Add a status ---- #}
+  <form method="POST" action="{{ url_for('dashboard.add_lead_status') }}"
+        class="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Add a status</h2>
+    <div class="flex flex-wrap items-end gap-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Name</label>
+        <input name="name" required maxlength="64" placeholder="e.g. Visited"
+               class="mt-1 w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Reports to Meta as</label>
+        <select name="meta_event"
+                class="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
+          <option value="">Don't send to Meta</option>
+          {% for event in meta_choices %}
+            <option value="{{ event }}">{{ event }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit"
+              class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+        Add status
+      </button>
+    </div>
+  </form>
+
+  <p class="text-xs text-slate-400">
+    Renaming a status automatically updates every lead currently on it. A status
+    can't be deleted while leads still use it — rename it or move those leads first.
+  </p>
+</div>
+{% endblock %}
