@@ -1,0 +1,109 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Email — MC College{% endblock %}
+{% block page_title %}Email{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Confirmation emails</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      When a lead submits the admission form <em>with</em> an email address, send
+      them an automatic plain-text confirmation. Defaults target Google Workspace
+      SMTP (<span class="font-mono">smtp.gmail.com</span>, port 587). Use a Google
+      <span class="font-mono">App Password</span> — the ordinary account password
+      is rejected. The From address should be on the same Workspace domain so
+      SPF/DKIM covers it.
+    </p>
+  </div>
+
+  {# ---- Configured banner ---- #}
+  <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    {% if mail_configured %}
+      <p class="text-xs text-green-600">
+        Email is enabled and fully configured. New leads with an email address
+        will receive a confirmation.
+      </p>
+    {% else %}
+      <p class="text-xs text-amber-600">
+        Email isn't active yet. Fill in the SMTP details below, tick
+        “Enable confirmation emails”, and save — then this activates.
+      </p>
+    {% endif %}
+  </div>
+
+  {# ---- Server configuration ---- #}
+  <form method="POST" action="{{ url_for('dashboard.mail_settings') }}"
+        class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    {{ form.hidden_tag() }}
+
+    {# ---- Enable toggle ---- #}
+    <label class="flex items-center gap-3">
+      {{ form.enabled(class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500") }}
+      <span class="text-sm font-medium text-slate-800">Enable confirmation emails</span>
+    </label>
+    <p class="-mt-3 text-xs text-slate-500">
+      When off, no email is sent even if SMTP details are saved.
+    </p>
+
+    {# ---- SMTP host + port ---- #}
+    <div class="grid grid-cols-3 gap-3">
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-slate-700">{{ form.smtp_host.label.text }}</label>
+        {{ form.smtp_host(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500",
+                          placeholder="smtp.gmail.com") }}
+        {% for e in form.smtp_host.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700">{{ form.smtp_port.label.text }}</label>
+        {{ form.smtp_port(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500",
+                          placeholder="587") }}
+        {% for e in form.smtp_port.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+      </div>
+    </div>
+
+    {# ---- Username ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700">{{ form.username.label.text }}</label>
+      {{ form.username(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500",
+                       autocomplete="off",
+                       placeholder="admissions@yourdomain.com") }}
+      {% for e in form.username.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+    </div>
+
+    {# ---- Password (secret; never prefilled) ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700">{{ form.password.label.text }}</label>
+      {{ form.password(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-teal-500 focus:ring-teal-500",
+                       autocomplete="new-password",
+                       placeholder="Paste a new App Password to change it") }}
+      <p class="mt-1 text-xs {{ 'text-green-600' if has_password else 'text-amber-600' }}">
+        {% if has_password %}
+          A password is saved. Leave blank to keep it; paste a new one to replace it.
+        {% else %}
+          No password saved yet. Email won't send until you add one.
+        {% endif %}
+      </p>
+      {% for e in form.password.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+    </div>
+
+    {# ---- From address ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700">{{ form.from_address.label.text }}</label>
+      {{ form.from_address(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500",
+                           placeholder="admissions@yourdomain.com") }}
+      <p class="mt-1 text-xs text-slate-500">
+        Shown as the sender. Leave blank to use the SMTP username.
+      </p>
+      {% for e in form.from_address.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="flex justify-end border-t border-slate-100 pt-4">
+      <button type="submit"
+              class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+        Save settings
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

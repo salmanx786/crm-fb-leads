@@ -3,12 +3,13 @@ from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
     DateTimeLocalField,
+    IntegerField,
     PasswordField,
     SelectField,
     StringField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, Optional, Regexp
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp
 
 from app.services.reference_service import get_courses, get_statuses
 
@@ -185,4 +186,55 @@ class MetaSettingsForm(FlaskForm):
     )
     event_source_url = StringField(
         "Event source URL", validators=[Optional(), Length(max=512)]
+    )
+
+
+class PushSettingsForm(FlaskForm):
+    """Manage the Web Push (VAPID) settings from the dashboard.
+
+    Field names map to settings_service.save_push_settings keys. Like the Meta
+    access token, the private key is a PasswordField that is never pre-filled:
+    leaving it blank keeps the stored key, so the secret never round-trips
+    through the page.
+    """
+
+    enabled = BooleanField("Enable push notifications", validators=[Optional()])
+    public_key = StringField(
+        "VAPID public key", validators=[Optional(), Length(max=255)]
+    )
+    private_key = PasswordField(
+        "VAPID private key", validators=[Optional(), Length(max=255)]
+    )
+    subject = StringField(
+        "Contact subject (mailto: or https:)",
+        validators=[Optional(), Length(max=255)],
+    )
+
+
+class MailSettingsForm(FlaskForm):
+    """Manage the transactional email (SMTP) settings from the dashboard.
+
+    Field names map to settings_service.save_mail_settings keys. Like the Meta
+    access token and VAPID private key, the SMTP password is a PasswordField
+    that is never pre-filled: leaving it blank keeps the stored password, so the
+    secret never round-trips through the page. Defaults target Google Workspace
+    SMTP, which requires an App Password (not the account password).
+    """
+
+    enabled = BooleanField("Enable confirmation emails", validators=[Optional()])
+    smtp_host = StringField(
+        "SMTP host", validators=[Optional(), Length(max=255)]
+    )
+    smtp_port = IntegerField(
+        "SMTP port", validators=[Optional(), NumberRange(min=1, max=65535)]
+    )
+    username = StringField(
+        "SMTP username", validators=[Optional(), Length(max=255)]
+    )
+    password = PasswordField(
+        "SMTP password (App Password)", validators=[Optional(), Length(max=255)]
+    )
+    from_address = StringField(
+        "From address",
+        validators=[Optional(), Email("Please enter a valid email."), Length(max=255)],
     )

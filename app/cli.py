@@ -177,3 +177,40 @@ def register_commands(app: Flask) -> None:
         click.echo(
             "Meta retry: retried={retried} sent={sent} failed={failed}".format(**result)
         )
+
+    @app.cli.command("generate-vapid-keys")
+    def generate_vapid_keys() -> None:
+        """Generate a VAPID key pair for Web Push notifications.
+
+        Prints the base64url-encoded public and private keys in the
+        application-server-key format the browser's PushManager and pywebpush
+        expect. Paste them into the dashboard Notifications page (or a .env's
+        VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY). Run once; keys are long-lived.
+        """
+        import base64
+
+        from cryptography.hazmat.primitives import serialization
+        from py_vapid import Vapid01
+
+        def _b64url(raw: bytes) -> str:
+            return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+        vapid = Vapid01()
+        vapid.generate_keys()
+        public_key = _b64url(
+            vapid.public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
+        )
+        private_key = _b64url(
+            vapid.private_key.private_numbers().private_value.to_bytes(32, "big")
+        )
+
+        click.echo("VAPID key pair generated. Store the private key securely.\n")
+        click.echo(f"VAPID_PUBLIC_KEY={public_key}")
+        click.echo(f"VAPID_PRIVATE_KEY={private_key}")
+        click.echo(
+            "\nPaste these into Dashboard → Notifications (or your .env), set a "
+            "subject like mailto:admin@yourdomain, and enable push."
+        )

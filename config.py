@@ -36,23 +36,9 @@ class Config:
 
     # --- Database -------------------------------------------------------
     # Built from discrete parts so it's easy to fill in via cPanel.
-    DB_USER = os.environ.get("DB_USER", "root")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
-    DB_HOST = os.environ.get("DB_HOST", "localhost")
-    DB_PORT = os.environ.get("DB_PORT", "3306")
-    DB_NAME = os.environ.get("DB_NAME", "mc_leads")
-
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or (
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}"
-        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    # Recycle connections before shared-hosting MySQL drops idle ones.
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_recycle": 280,
-        "pool_pre_ping": True,
-    }
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
     # --- Meta (Facebook) Conversions API --------------------------------
     # Server-side conversion events. Disabled by default; enable per env.
@@ -75,6 +61,36 @@ class Config:
     # registers a new dispatcher in meta_service and this switches to it,
     # without any change to lead_service.
     META_DISPATCH_MODE = os.environ.get("META_DISPATCH_MODE", "sync")
+
+    # --- Web Push notifications (VAPID) ---------------------------------
+    # Browser push to logged-in admins. Disabled by default; enable per env or
+    # from the dashboard. Generate a key pair with `flask generate-vapid-keys`.
+    PUSH_ENABLED = os.environ.get("PUSH_ENABLED", "False").lower() in ("1", "true", "yes")
+    VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+    VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+    # Contact URI sent to push services with each request (spec requires a
+    # mailto: or https: subject). e.g. "mailto:admin@mccollege.example".
+    VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "")
+    # Per-request timeout (seconds) so a slow push service never stalls a
+    # request; mirrors META_TIMEOUT.
+    PUSH_TIMEOUT = int(os.environ.get("PUSH_TIMEOUT", "10"))
+
+    # --- Transactional email (SMTP) -------------------------------------
+    # Applicant confirmation email on new lead. Disabled by default; enable per
+    # env or from the dashboard. Defaults target Google Workspace SMTP, which
+    # needs an *App Password* (account 2FA on) or the Workspace SMTP relay — the
+    # ordinary account password is rejected. MAIL_FROM should be on the same
+    # Workspace domain as MAIL_USERNAME so existing SPF/DKIM covers it.
+    MAIL_ENABLED = os.environ.get("MAIL_ENABLED", "False").lower() in ("1", "true", "yes")
+    MAIL_SMTP_HOST = os.environ.get("MAIL_SMTP_HOST", "smtp.gmail.com")
+    MAIL_SMTP_PORT = int(os.environ.get("MAIL_SMTP_PORT", "587"))
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
+    # Envelope/From address. Falls back to MAIL_USERNAME when blank.
+    MAIL_FROM = os.environ.get("MAIL_FROM", "")
+    # Per-request timeout (seconds) so a slow SMTP never stalls a lead write;
+    # mirrors META_TIMEOUT / PUSH_TIMEOUT.
+    MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", "10"))
 
     # --- Pagination -----------------------------------------------------
     LEADS_PER_PAGE = int(os.environ.get("LEADS_PER_PAGE", "20"))

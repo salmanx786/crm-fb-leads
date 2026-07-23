@@ -11,10 +11,13 @@ from flask import (
     Blueprint,
     Response,
     abort,
+    current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
+    send_from_directory,
     url_for,
 )
 from flask_login import login_required
@@ -26,8 +29,10 @@ from .forms import (
     BulkActionForm,
     FollowUpForm,
     LeadEditForm,
+    MailSettingsForm,
     MetaSettingsForm,
     NoteForm,
+    PushSettingsForm,
     StatusForm,
 )
 
@@ -487,6 +492,149 @@ def delete_lead_status(status_id: int):
     except StatusError as exc:
         flash(str(exc), "error")
     return redirect(url_for("dashboard.lead_statuses"))
+
+
+@dashboard_bp.route("/settings/notifications", methods=["GET", "POST"])
+@login_required
+def notification_settings():
+    """View and save the Web Push (VAPID) settings.
+
+    Thin: on GET, prefill non-secret fields (the private key is never
+    prefilled — only whether one exists is shown). On POST, hand the raw form
+    values to settings_service, which owns the "blank key keeps the stored one"
+    rule and the transaction boundary. The template also needs the resolved
+    public key + configured flag so the "enable on this browser" button works.
+    """
+    from app.services import push_service, settings_service
+
+    view = settings_service.push_settings_view()
+    form = PushSettingsForm()
+
+    if form.validate_on_submit():
+        settings_service.save_push_settings(
+            {
+                "enabled": form.enabled.data,
+                "public_key": form.public_key.data,
+                "private_key": form.private_key.data,
+                "subject": form.subject.data,
+            }
+        )
+        flash("Notification settings saved.", "success")
+        return redirect(url_for("dashboard.notification_settings"))
+
+    if request.method == "GET":
+        # Prefill non-secret fields; the private-key field stays empty.
+        form.enabled.data = view["enabled"]
+        form.public_key.data = view["public_key"]
+        form.subject.data = view["subject"]
+
+    return render_template(
+        "dashboard/settings_notifications.html",
+        form=form,
+        has_private_key=view["has_private_key"],
+        push_public_key=push_service.public_key(),
+        push_configured=push_service.is_configured(),
+    )
+
+
+@dashboard_bp.route("/settings/email", methods=["GET", "POST"])
+@login_required
+def mail_settings():
+    """View and save the transactional email (SMTP) settings.
+
+    Thin: on GET, prefill non-secret fields (the SMTP password is never
+    prefilled — only whether one exists is shown). On POST, hand the raw form
+    values to settings_service, which owns the "blank password keeps the stored
+    one" rule and the transaction boundary.
+    """
+    from app.services import email_service, settings_service
+
+    view = settings_service.mail_settings_view()
+    form = MailSettingsForm()
+
+    if form.validate_on_submit():
+        settings_service.save_mail_settings(
+            {
+                "enabled": form.enabled.data,
+                "smtp_host": form.smtp_host.data,
+                "smtp_port": form.smtp_port.data,
+                "username": form.username.data,
+                "password": form.password.data,
+                "from_address": form.from_address.data,
+            }
+        )
+        flash("Email settings saved.", "success")
+        return redirect(url_for("dashboard.mail_settings"))
+
+    if request.method == "GET":
+        # Prefill non-secret fields; the password field stays empty.
+        form.enabled.data = view["enabled"]
+        form.smtp_host.data = view["smtp_host"]
+        form.smtp_port.data = int(view["smtp_port"]) if view["smtp_port"] else None
+        form.username.data = view["username"]
+        form.from_address.data = view["from_address"]
+
+    return render_template(
+        "dashboard/settings_email.html",
+        form=form,
+        has_password=view["has_password"],
+        mail_configured=email_service.is_configured(),
+    )
+
+
+@dashboard_bp.route("/push/subscribe", methods=["POST"])
+@login_required
+def push_subscribe():
+    """Persist the browser Push subscription for the current admin.
+
+    Called by push.js after the browser grants permission and creates a
+    PushManager subscription. The CSRF token travels in the X-CSRFToken header
+    (Flask-WTF reads it there), so the global CSRFProtect covers this endpoint
+    without an exemption.
+    """
+    from app.services import push_service
+
+    data = request.get_json(silent=True) or {}
+    subscription = data.get("subscription")
+    try:
+        push_service.save_subscription(
+            _current_user_id(), subscription, request.user_agent.string
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True})
+
+
+@dashboard_bp.route("/push/unsubscribe", methods=["POST"])
+@login_required
+def push_unsubscribe():
+    """Remove the current admin's subscription (browser opt-out)."""
+    from app.services import push_service
+
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get("endpoint")
+    removed = bool(endpoint) and push_service.delete_subscription(
+        _current_user_id(), endpoint
+    )
+    return jsonify({"ok": True, "removed": removed})
+
+
+@dashboard_bp.route("/sw.js")
+def service_worker():
+    """Serve the push service worker at /dashboard/sw.js.
+
+    A service worker only controls pages at or below its own path, so serving
+    it under the dashboard prefix scopes it to the admin area (where the only
+    notification-consuming pages live). Not login-gated: the browser fetches it
+    without the session cookie in some flows, and it contains no secrets.
+    """
+    import os
+
+    return send_from_directory(
+        os.path.join(current_app.static_folder, "js"),
+        "sw.js",
+        mimetype="application/javascript",
+    )
 
 
 def _current_user_id():

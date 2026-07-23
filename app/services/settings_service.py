@@ -32,8 +32,25 @@ META_TEST_EVENT_CODE = "META_TEST_EVENT_CODE"
 META_DEFAULT_COUNTRY = "META_DEFAULT_COUNTRY"
 META_EVENT_SOURCE_URL = "META_EVENT_SOURCE_URL"
 
+# Web Push (VAPID) settings. Same DB->config->default fallback as Meta, so push
+# stays off until an admin (or env) configures it. The private key is a secret.
+PUSH_ENABLED = "PUSH_ENABLED"
+VAPID_PUBLIC_KEY = "VAPID_PUBLIC_KEY"
+VAPID_PRIVATE_KEY = "VAPID_PRIVATE_KEY"
+VAPID_SUBJECT = "VAPID_SUBJECT"
+
+# Transactional email (SMTP) settings. Same DB->config->default fallback, so
+# email stays off until an admin (or env) configures it. The SMTP password is a
+# secret. Defaults target Google Workspace SMTP (see config.py).
+MAIL_ENABLED = "MAIL_ENABLED"
+MAIL_SMTP_HOST = "MAIL_SMTP_HOST"
+MAIL_SMTP_PORT = "MAIL_SMTP_PORT"
+MAIL_USERNAME = "MAIL_USERNAME"
+MAIL_PASSWORD = "MAIL_PASSWORD"
+MAIL_FROM = "MAIL_FROM"
+
 # Keys whose stored value is a secret — masked in the UI, never logged.
-SECRET_KEYS = frozenset({META_ACCESS_TOKEN})
+SECRET_KEYS = frozenset({META_ACCESS_TOKEN, VAPID_PRIVATE_KEY, MAIL_PASSWORD})
 
 # String settings the settings form reads/writes, in display order.
 META_STRING_KEYS = (
@@ -119,4 +136,77 @@ def meta_settings_view() -> dict:
         "default_country": get_str(META_DEFAULT_COUNTRY),
         "event_source_url": get_str(META_EVENT_SOURCE_URL),
         "has_access_token": bool(get_str(META_ACCESS_TOKEN)),
+    }
+
+
+def save_push_settings(data: dict) -> None:
+    """Persist the Web Push (VAPID) settings submitted from the dashboard.
+
+    Mirrors ``save_meta_settings``: the private key is a secret, so a blank
+    submission means "leave the stored key unchanged" — the admin never has to
+    re-enter it to tweak the subject or toggle push, and it need not be
+    pre-filled into the page. All writes commit in one transaction.
+    """
+    set_value(PUSH_ENABLED, "true" if data.get("enabled") else "false")
+    set_value(VAPID_PUBLIC_KEY, (data.get("public_key") or "").strip() or None)
+    set_value(VAPID_SUBJECT, (data.get("subject") or "").strip() or None)
+
+    # Private key: only overwrite when a non-empty value was submitted.
+    private_key = (data.get("private_key") or "").strip()
+    if private_key:
+        set_value(VAPID_PRIVATE_KEY, private_key)
+
+    db.session.commit()
+
+
+def push_settings_view() -> dict:
+    """Resolved Web Push settings for rendering the settings page.
+
+    Never includes the raw private key — only whether one is configured — so
+    the secret is not written into the HTML response.
+    """
+    return {
+        "enabled": get_bool(PUSH_ENABLED),
+        "public_key": get_str(VAPID_PUBLIC_KEY),
+        "subject": get_str(VAPID_SUBJECT),
+        "has_private_key": bool(get_str(VAPID_PRIVATE_KEY)),
+    }
+
+
+def save_mail_settings(data: dict) -> None:
+    """Persist the transactional email (SMTP) settings from the dashboard.
+
+    Mirrors ``save_push_settings``: the SMTP password is a secret, so a blank
+    submission means "leave the stored password unchanged" — the admin never
+    has to re-enter it to tweak the host or toggle email, and it need not be
+    pre-filled into the page. All writes commit in one transaction.
+    """
+    set_value(MAIL_ENABLED, "true" if data.get("enabled") else "false")
+    set_value(MAIL_SMTP_HOST, (data.get("smtp_host") or "").strip() or None)
+    set_value(MAIL_SMTP_PORT, (str(data.get("smtp_port")).strip() or None)
+              if data.get("smtp_port") not in (None, "") else None)
+    set_value(MAIL_USERNAME, (data.get("username") or "").strip() or None)
+    set_value(MAIL_FROM, (data.get("from_address") or "").strip() or None)
+
+    # Password: only overwrite when a non-empty value was submitted.
+    password = (data.get("password") or "").strip()
+    if password:
+        set_value(MAIL_PASSWORD, password)
+
+    db.session.commit()
+
+
+def mail_settings_view() -> dict:
+    """Resolved email settings for rendering the settings page.
+
+    Never includes the raw SMTP password — only whether one is configured — so
+    the secret is not written into the HTML response.
+    """
+    return {
+        "enabled": get_bool(MAIL_ENABLED),
+        "smtp_host": get_str(MAIL_SMTP_HOST),
+        "smtp_port": get_str(MAIL_SMTP_PORT),
+        "username": get_str(MAIL_USERNAME),
+        "from_address": get_str(MAIL_FROM),
+        "has_password": bool(get_str(MAIL_PASSWORD)),
     }

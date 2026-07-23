@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.constants import DEFAULT_LEAD_STATUS
 from app.extensions import db
 from app.models import Lead, LeadNote, TimelineEvent
-from app.services import meta_service
+from app.services import email_service, meta_service, push_service
 from app.services.status_service import is_valid_status
 from app.utils.helpers import clean_str, normalize_email, normalize_phone
 from app.utils.logger import get_logger
@@ -130,6 +130,16 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
     )
     # Fire the Meta conversion event (no-op if disabled/untracked; never raises).
     meta_service.track_event(lead, "lead_created")
+    # Alert logged-in admins in real time (no-op if push is disabled/unconfigured;
+    # never raises, so it can't affect the public submission).
+    push_service.notify_all_admins(
+        title="New lead",
+        body=f"{lead.name} — {lead.course or 'enquiry'}",
+        url=f"/dashboard/leads/{lead.id}",
+    )
+    # Send the applicant a confirmation email (no-op if email is disabled/
+    # unconfigured or the lead left the email field blank; never raises).
+    email_service.notify_new_lead(lead)
     return lead
 
 

@@ -35,11 +35,14 @@ def is_valid_status(value: str) -> bool:
 # configuration so the meta_service never hardcodes event names and new
 # mappings are a one-line edit. Triggers not present here are simply not sent.
 #
-# "lead_created" is a synthetic trigger fired on lead creation; the rest are
-# lead statuses that, when reached, should raise a conversion event.
+# "lead_created" is a synthetic trigger fired once on lead creation and is the
+# only trigger mapped to the "Lead" conversion, so a single submission counts
+# as exactly one Lead. The rest are lead statuses that, when reached, raise a
+# later-funnel conversion. Deliberately NOT mapped: "Interested" (and other
+# early stages) — they are CRM stages set on an already-counted lead, so
+# mapping them to "Lead" would double-count the same person in Ads Manager.
 META_EVENT_MAP: dict[str, str] = {
     "lead_created": "Lead",
-    "Interested": "Lead",
     "Documents Pending": "SubmitApplication",
     "Admitted": "CompleteRegistration",
 }

@@ -64,6 +64,12 @@ class Lead(BaseModel):
     # and cleared only through lead_service so every change is timelined.
     next_follow_up_at = db.Column(db.DateTime, nullable=True)
 
+    # When a "follow-up due" push reminder was last sent for the current
+    # follow-up. Nullable (never reminded). The reminder sweep only notifies
+    # leads whose reminder is unsent or predates the current follow-up time, so
+    # rescheduling re-arms a reminder and a due lead is never notified twice.
+    follow_up_reminded_at = db.Column(db.DateTime, nullable=True)
+
     # Indexes for the columns the dashboard filters and sorts on. The
     # composite (status, created_at) index backs the common "leads in a given
     # stage, newest first" query the listing view runs.

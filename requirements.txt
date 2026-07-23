@@ -6,7 +6,7 @@ Werkzeug==3.0.3
 # Database
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.31
-PyMySQL==1.1.1           # Pure-Python MySQL driver (no C build needed on shared hosting)
+psycopg2-binary==2.9.9
 
 # Auth & Forms
 Flask-Login==0.6.3
@@ -16,6 +16,10 @@ email-validator==2.2.0  # Email field validation
 
 # HTTP client (Meta Conversions API calls)
 requests==2.32.3
+
+# Web Push notifications (VAPID signing + encrypted Web Push protocol).
+# Pulls in `cryptography` and `py_vapid` transitively.
+pywebpush==2.0.0
 
 # Config
 python-dotenv==1.0.1
