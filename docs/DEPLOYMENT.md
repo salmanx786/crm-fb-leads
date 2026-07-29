@@ -32,12 +32,12 @@ in production. Never commit `.env`.
 |---|---|
 | `SECRET_KEY` | Flask session/CSRF signing. **Set a strong random value in prod.** |
 | `FLASK_CONFIG` | `development` / `production` |
-| `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME` | MySQL connection |
-| `DATABASE_URL` | Optional full URI, overrides the discrete `DB_*` parts |
+| `DATABASE_URL` | Full Postgres URI (Supabase). The app reads this only. |
 | `LEADS_PER_PAGE` | Optional pagination size (default 20) |
 
-The database URI forces `charset=utf8mb4`, and the engine uses `pool_pre_ping`
-plus a short `pool_recycle` so connections don't go stale on shared MySQL.
+The engine uses `pool_pre_ping` so a connection dropped by the pooler is
+detected and replaced rather than raising mid-request. Supabase requires SSL —
+keep `?sslmode=require` on the URL.
 
 ## cPanel deployment (Passenger)
 
@@ -48,8 +48,9 @@ plus a short `pool_recycle` so connections don't go stale on shared MySQL.
 3. **Install dependencies.** From the app's virtualenv:
    `pip install -r requirements.txt` (production deps only — not
    `requirements-dev.txt`).
-4. **Create the MySQL database & user** in cPanel, grant privileges, and fill
-   the `DB_*` environment variables.
+4. **Provision the database.** Create a Postgres project in Supabase and set
+   `DATABASE_URL` to its connection string (use the Session pooler host on
+   IPv4-only hosting; keep `?sslmode=require`).
 5. **Create the schema.** Run `flask --app manage db upgrade` (or `init-db`) from
    the app's Python environment.
 6. **Create the first admin:** `flask --app manage create-admin`.
@@ -57,8 +58,8 @@ plus a short `pool_recycle` so connections don't go stale on shared MySQL.
 
 ### Notes for shared hosting
 
-- **Driver:** `PyMySQL` is pure Python — no compiler needed, unlike
-  `mysqlclient`.
+- **Driver:** `psycopg2-binary` ships a precompiled wheel — no compiler needed
+  on the host. Connect to Supabase over the Session pooler on IPv4-only hosting.
 - **Password hashing:** `pbkdf2:sha256`, because some hosts' Python builds lack
   OpenSSL `scrypt` (Werkzeug's default).
 - **Python version:** the code targets 3.9+ (`from __future__ import

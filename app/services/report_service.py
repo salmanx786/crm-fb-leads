@@ -20,8 +20,8 @@ Design notes
 Windowing is timezone-aware (``REPORT_TZ``): ``created_at`` is stored naive-UTC,
 but a "day" must mean a local day, so boundaries are computed in local time and
 converted back to UTC for the query. Aggregation (median especially) is done in
-Python from a small per-lead record set — dialect-safe across SQLite and MySQL,
-and the volume here is an admissions pipeline, not a firehose.
+Python from a small per-lead record set — dialect-safe across SQLite and
+PostgreSQL, and the volume here is an admissions pipeline, not a firehose.
 """
 from __future__ import annotations
 
