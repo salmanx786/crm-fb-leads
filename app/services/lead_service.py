@@ -62,15 +62,25 @@ def validate_lead_payload(data: dict) -> dict[str, str]:
 
 
 def _record_event(
-    lead: Lead, event_type: str, description: str, actor_id: Optional[int] = None
+    lead: Lead,
+    event_type: str,
+    description: str,
+    actor_id: Optional[int] = None,
+    to_status: Optional[str] = None,
 ) -> None:
-    """Append a timeline event. Not committed here; caller owns the transaction."""
+    """Append a timeline event. Not committed here; caller owns the transaction.
+
+    `to_status` is stored on status-changing events (see TimelineEvent.to_status)
+    so the reports can reconstruct a lead's status trajectory without parsing
+    the human-readable `description`.
+    """
     db.session.add(
         TimelineEvent(
             lead=lead,
             event_type=event_type,
             description=description,
             actor_id=actor_id,
+            to_status=to_status,
         )
     )
 
@@ -211,7 +221,15 @@ def update_lead(lead: Lead, data: dict, actor_id: Optional[int] = None) -> Lead:
         )
 
     summary = ", ".join(_EDIT_LABELS[f] for f in changed)
-    _record_event(lead, "updated", f"Lead updated: {summary}", actor_id)
+    # Stamp to_status only when the edit actually moved the lead's stage, so the
+    # reports treat an edit-form status change the same as a dedicated one.
+    _record_event(
+        lead,
+        "updated",
+        f"Lead updated: {summary}",
+        actor_id,
+        to_status=lead.status if status_changed else None,
+    )
     db.session.commit()
     logger.info(
         "Lead updated: id=%s fields=%s by user=%s",
@@ -247,6 +265,7 @@ def change_status(
         "status_changed",
         f"Status changed from {old_status} to {new_status}.",
         actor_id,
+        to_status=new_status,
     )
     if not commit:
         return lead

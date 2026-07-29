@@ -142,6 +142,18 @@ class TimelineEvent(BaseModel):
     event_type = db.Column(db.String(50), nullable=False)
     # Human-readable summary rendered in the lead detail timeline.
     description = db.Column(db.String(512), nullable=False)
+    # The status the lead moved TO on events that change its status (set by
+    # lead_service on both the dedicated status change and the edit form).
+    # NULL for non-status events (created, note_added, follow-up changes). This
+    # is the structured, rename-proof source the reports read to reconstruct
+    # when a lead was first contacted and how far it progressed — as opposed to
+    # parsing it out of the free-text `description`. Indexed with created_at so
+    # the "first contact per lead" scan the report runs stays cheap.
+    to_status = db.Column(db.String(64), nullable=True)
+
+    __table_args__ = (
+        db.Index("ix_timeline_events_to_status_created_at", "to_status", "created_at"),
+    )
 
     lead = db.relationship("Lead", back_populates="timeline")
     actor = db.relationship("User")

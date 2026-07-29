@@ -1,0 +1,207 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Reports — MC College{% endblock %}
+{% block page_title %}Lead Response Report{% endblock %}
+
+{% block content %}
+{#
+  Lead-response analytics. All numbers come from report_service (definitions
+  live there); this template only presents them. Charts are self-contained
+  CSS/SVG — no charting dependency, consistent with the CDN-Tailwind setup.
+  Trend uses a single-hue magnitude encoding (contacted as a fill within each
+  day's total), so there's no two-hue colorblind concern; identity is carried
+  by an always-present legend plus direct value labels.
+#}
+
+{% macro hrs(value) -%}
+  {%- if value is none -%}—{%- else -%}{{ value }}h{%- endif -%}
+{%- endmacro %}
+
+{% macro pct(value) -%}
+  {%- if value is none -%}—{%- else -%}{{ value }}%{%- endif -%}
+{%- endmacro %}
+
+{# ---- Controls: period toggle, maturity filter, CSV export ---- #}
+{% set periods = [('day', 'Day'), ('week', 'Week'), ('month', 'Month')] %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="Report period">
+    {% for value, label in periods %}
+      <a href="{{ url_for('dashboard.reports', period=value, mature_only='1' if mature_only else none) }}"
+         role="tab" aria-selected="{{ 'true' if active_period == value else 'false' }}"
+         class="rounded-md px-4 py-1.5 text-sm font-medium transition
+                {{ 'bg-teal-600 text-white shadow-sm' if active_period == value else 'text-slate-600 hover:text-slate-900' }}">
+        {{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="flex items-center gap-3">
+    <a href="{{ url_for('dashboard.reports', period=active_period, mature_only=none if mature_only else '1') }}"
+       class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition
+              {{ 'border-teal-600 bg-teal-50 text-teal-700' if mature_only else 'border-slate-200 bg-white text-slate-600 hover:text-slate-900' }}"
+       title="Exclude leads under 24h old, which haven't had a fair chance to respond yet">
+      <span class="flex h-4 w-4 items-center justify-center rounded border {{ 'border-teal-600 bg-teal-600' if mature_only else 'border-slate-300' }}">
+        {% if mature_only %}<svg class="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.1 3.1 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>{% endif %}
+      </span>
+      Mature leads only
+    </a>
+    <a href="{{ url_for('dashboard.export_report_csv', period=active_period, mature_only='1' if mature_only else none) }}"
+       class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+      Export CSV
+    </a>
+  </div>
+</div>
+
+<p class="mt-2 text-sm text-slate-500">
+  Showing <span class="font-medium text-slate-700">{{ summary.label }}</span>
+  {% if mature_only %}· mature leads only{% endif %}
+</p>
+
+{# ---- KPI stat tiles ---- #}
+{% set tiles = [
+  ('New leads', summary.new_leads, 'Captured in this period', 'text-slate-900'),
+  ('Contact rate', pct(summary.contact_rate), summary.contacted ~ ' of ' ~ summary.new_leads ~ ' contacted', 'text-blue-700'),
+  ('Median time to contact', hrs(summary.median_hours_to_contact), 'Avg ' ~ hrs(summary.avg_hours_to_contact), 'text-teal-700'),
+  ('Response rate', pct(summary.response_rate), summary.responded ~ ' of ' ~ summary.contacted ~ ' progressed', 'text-emerald-700'),
+] %}
+<div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% for label, value, sub, tone in tiles %}
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="text-sm font-medium text-slate-500">{{ label }}</div>
+      <div class="mt-1 text-3xl font-semibold {{ tone }}">{{ value }}</div>
+      <div class="mt-1 text-xs text-slate-400">{{ sub }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+{# ---- Headline: early vs late response rate ---- #}
+{% set early = summary.early %}
+{% set late = summary.late %}
+<div class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="flex items-start justify-between">
+    <div>
+      <h2 class="text-base font-semibold text-slate-900">Does speed to contact matter?</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Response rate for leads contacted within {{ summary.early_cutoff_hours }}h vs later.
+      </p>
+    </div>
+    {% if early.response_rate is not none and late.response_rate is not none %}
+      {% set delta = (early.response_rate - late.response_rate) | round(1) %}
+      <div class="text-right">
+        <div class="text-xs font-medium uppercase tracking-wide text-slate-400">Early advantage</div>
+        <div class="text-2xl font-semibold {{ 'text-emerald-600' if delta > 0 else ('text-rose-600' if delta < 0 else 'text-slate-500') }}">
+          {{ '+' if delta > 0 else '' }}{{ delta }} pts
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {# Two horizontal bars, single measure (response rate), one hue. Category and
+     value carried by direct labels, not color, so no legend/CVD concern. #}
+  <div class="mt-5 space-y-4">
+    {% for name, cohort, hue in [('Early (≤ ' ~ summary.early_cutoff_hours ~ 'h)', early, 'bg-teal-600'), ('Late (> ' ~ summary.early_cutoff_hours ~ 'h)', late, 'bg-slate-400')] %}
+      <div>
+        <div class="mb-1 flex items-center justify-between text-sm">
+          <span class="font-medium text-slate-700">{{ name }}</span>
+          <span class="text-slate-500">
+            <span class="font-semibold text-slate-800">{{ pct(cohort.response_rate) }}</span>
+            · {{ cohort.responded }}/{{ cohort.count }} leads
+          </span>
+        </div>
+        <div class="h-6 w-full overflow-hidden rounded-md bg-slate-100">
+          <div class="h-full rounded-md {{ hue }}"
+               style="width: {{ cohort.response_rate or 0 }}%"
+               title="{{ pct(cohort.response_rate) }} of {{ cohort.count }} {{ name }} leads responded"></div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% if early.count == 0 and late.count == 0 %}
+    <p class="mt-4 text-sm text-slate-400">No contacted leads in this period yet.</p>
+  {% endif %}
+</div>
+
+{# ---- Trend + responded/not breakdown ---- #}
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  {# Trend chart (2/3 width): per-day volume with contacted as an inner fill. #}
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-semibold text-slate-900">Daily volume</h2>
+      <div class="flex items-center gap-4 text-xs text-slate-500">
+        <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-blue-200"></span>New</span>
+        <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-blue-600"></span>Contacted</span>
+      </div>
+    </div>
+
+    {% set counts = trend | map(attribute='new_leads') | list %}
+    {% set top = (counts | max) if counts and (counts | max) > 0 else 1 %}
+    <div class="mt-6 flex h-48 items-end gap-1 overflow-x-auto">
+      {% for d in trend %}
+        <div class="flex min-w-[14px] flex-1 flex-col items-center justify-end gap-1"
+             title="{{ d.date }} · {{ d.new_leads }} new, {{ d.contacted }} contacted">
+          <div class="text-[10px] font-medium text-slate-400">{{ d.new_leads or '' }}</div>
+          {# Track sized to the day's total; solid inner fill = contacted. #}
+          <div class="flex w-full max-w-[36px] items-end rounded-t bg-blue-200"
+               style="height: {{ (d.new_leads / top * 100) | round(1) }}%; min-height: {{ '2px' if d.new_leads else '0' }};">
+            <div class="w-full rounded-t bg-blue-600"
+                 style="height: {{ (d.contacted / d.new_leads * 100) | round(1) if d.new_leads else 0 }}%;"></div>
+          </div>
+          <div class="text-[10px] text-slate-400">{{ d.date[5:] }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Responded / not-responded / not-contacted funnel (1/3 width). #}
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-base font-semibold text-slate-900">Outcome breakdown</h2>
+    <dl class="mt-4 space-y-3 text-sm">
+      {% for label, value, dot in [
+        ('Responded', summary.responded, 'bg-emerald-500'),
+        ('Contacted, no response', summary.not_responded, 'bg-amber-400'),
+        ('Never contacted', summary.not_contacted, 'bg-slate-300'),
+      ] %}
+        <div class="flex items-center justify-between">
+          <dt class="flex items-center gap-2 text-slate-600">
+            <span class="inline-block h-2.5 w-2.5 rounded-full {{ dot }}"></span>{{ label }}
+          </dt>
+          <dd class="font-semibold text-slate-800">{{ value }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+  </div>
+</div>
+
+{# ---- Per-staff breakdown ---- #}
+<div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+  <div class="border-b border-slate-100 px-6 py-4">
+    <h2 class="text-base font-semibold text-slate-900">By staff member</h2>
+    <p class="mt-0.5 text-sm text-slate-500">Attributed to whoever logged each lead's first contact.</p>
+  </div>
+  {% if per_staff %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
+          <th class="px-6 py-3 font-medium">Staff</th>
+          <th class="px-6 py-3 text-right font-medium">Leads contacted</th>
+          <th class="px-6 py-3 text-right font-medium">Median time to contact</th>
+          <th class="px-6 py-3 text-right font-medium">Response rate</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for row in per_staff %}
+          <tr>
+            <td class="px-6 py-3 font-medium text-slate-800">{{ row.actor }}</td>
+            <td class="px-6 py-3 text-right text-slate-600">{{ row.contacted }}</td>
+            <td class="px-6 py-3 text-right text-slate-600">{{ hrs(row.median_hours_to_contact) }}</td>
+            <td class="px-6 py-3 text-right text-slate-600">{{ pct(row.response_rate) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="px-6 py-6 text-sm text-slate-400">No contacts recorded in this period.</p>
+  {% endif %}
+</div>
+{% endblock %}

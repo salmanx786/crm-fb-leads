@@ -6,6 +6,7 @@ All writes go through lead_service so timeline events stay consistent.
 """
 import csv
 import io
+from datetime import date
 
 from flask import (
     Blueprint,
@@ -22,7 +23,7 @@ from flask import (
 )
 from flask_login import login_required
 
-from app.services import dashboard_service, lead_service, reference_service
+from app.services import dashboard_service, lead_service, reference_service, report_service
 from app.services.lead_service import LeadValidationError
 
 from .forms import (
@@ -183,6 +184,112 @@ def export_leads_csv():
         buffer.getvalue(),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=leads.csv"},
+    )
+
+
+# --- reports --------------------------------------------------------------
+# Lead-response analytics. Route stays thin: parse period + options, delegate
+# to report_service (all definitions and aggregation live there), render/export.
+
+def _report_args():
+    """Parse the shared report query params: period, custom range, maturity."""
+    period = request.args.get("period", "day", type=str)
+    if period not in report_service.VALID_PERIODS:
+        period = "day"
+    mature_only = request.args.get("mature_only", type=str) in ("1", "true", "on")
+
+    def _parse_date(name):
+        raw = request.args.get(name, type=str)
+        if not raw:
+            return None
+        try:
+            return date.fromisoformat(raw)
+        except ValueError:
+            return None
+
+    return period, _parse_date("from"), _parse_date("to"), mature_only
+
+
+# Reports CSV export column headers, in order (maps 1:1 to _report_csv_rows).
+REPORT_SUMMARY_COLUMNS = ["Metric", "Value"]
+REPORT_LEAD_COLUMNS = [
+    "Lead ID",
+    "Created At",
+    "First Contact At",
+    "Hours To Contact",
+    "Contacted",
+    "Cohort",
+    "Responded",
+]
+
+
+@dashboard_bp.route("/reports")
+@login_required
+def reports():
+    """Lead-response analytics: new/contacted/response rates, early-vs-late."""
+    period, start, end, mature_only = _report_args()
+    data = report_service.report(period, start=start, end=end, mature_only=mature_only)
+    return render_template(
+        "dashboard/reports.html",
+        summary=data["summary"],
+        trend=data["trend"],
+        per_staff=data["per_staff"],
+        active_period=period,
+        mature_only=mature_only,
+        start=start.isoformat() if start else "",
+        end=end.isoformat() if end else "",
+    )
+
+
+@dashboard_bp.route("/reports/export.csv")
+@login_required
+def export_report_csv():
+    """Download the current report: summary rows, then one row per lead."""
+    period, start, end, mature_only = _report_args()
+    data = report_service.report(period, start=start, end=end, mature_only=mature_only)
+    s = data["summary"]
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+
+    writer.writerow([f"Lead response report — {s['label']}"])
+    writer.writerow(REPORT_SUMMARY_COLUMNS)
+    for label, value in [
+        ("New leads", s["new_leads"]),
+        ("Contacted", s["contacted"]),
+        ("Not contacted", s["not_contacted"]),
+        ("Contact rate %", s["contact_rate"]),
+        ("Avg hours to contact", s["avg_hours_to_contact"]),
+        ("Median hours to contact", s["median_hours_to_contact"]),
+        ("Responded", s["responded"]),
+        ("Response rate %", s["response_rate"]),
+        (f"Early (<= {s['early_cutoff_hours']}h) count", s["early"]["count"]),
+        ("Early response rate %", s["early"]["response_rate"]),
+        (f"Late (> {s['early_cutoff_hours']}h) count", s["late"]["count"]),
+        ("Late response rate %", s["late"]["response_rate"]),
+    ]:
+        writer.writerow([label, "" if value is None else value])
+
+    writer.writerow([])
+    writer.writerow(REPORT_LEAD_COLUMNS)
+    for r in data["records"]:
+        hours = r.hours_to_contact
+        writer.writerow(
+            [
+                r.lead_id,
+                _iso(r.created_at),
+                _iso(r.first_contact_at),
+                "" if hours is None else round(hours, 2),
+                "yes" if r.contacted else "no",
+                r.cohort or "",
+                "yes" if r.responded else "no",
+            ]
+        )
+
+    return Response(
+        buffer.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=lead-report.csv"},
     )
 
 
