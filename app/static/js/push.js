@@ -60,6 +60,24 @@
     return navigator.serviceWorker.register(SW_URL, { scope: "/dashboard/" });
   }
 
+  // register() resolves as soon as the registration exists, but the worker may
+  // still be "installing"/"waiting". pushManager.subscribe() needs an *active*
+  // worker, so wait for one before subscribing (fixes "no active Service
+  // Worker" on first opt-in).
+  function waitForActive(registration) {
+    if (registration.active) return Promise.resolve(registration);
+    return new Promise(function (resolve) {
+      var sw = registration.installing || registration.waiting;
+      if (!sw) {
+        navigator.serviceWorker.ready.then(resolve);
+        return;
+      }
+      sw.addEventListener("statechange", function () {
+        if (sw.state === "activated") resolve(registration);
+      });
+    });
+  }
+
   function enable() {
     if (!supported()) {
       setStatus("This browser doesn't support push notifications.");
@@ -79,6 +97,7 @@
         }
         return register();
       })
+      .then(waitForActive)
       .then(function (registration) {
         return registration.pushManager.subscribe({
           userVisibleOnly: true,
