@@ -23,8 +23,9 @@ from flask import (
 )
 from flask_login import login_required
 
-from app.services import dashboard_service, lead_service, reference_service, report_service
+from app.services import dashboard_service, lead_service, reference_service, report_service, wordpress_service
 from app.services.lead_service import LeadValidationError
+from app.services.wordpress_service import WordPressAPIError
 
 from .forms import (
     BulkActionForm,
@@ -152,6 +153,63 @@ def leads():
         active_period=period or "",
         active_follow_up=follow_up or "",
     )
+
+
+# --- WordPress / Kadence leads -------------------------------------------
+
+@dashboard_bp.route("/wordpress-leads")
+@login_required
+def wordpress_leads():
+    page = request.args.get("page", 1, type=int)
+    status = request.args.get("status", type=str)
+    search = request.args.get("q", type=str)
+    try:
+        data = wordpress_service.list_leads(
+            page=page,
+            per_page=current_app.config.get("LEADS_PER_PAGE", 20),
+            status=status or None,
+            search=search or None,
+        )
+    except WordPressAPIError as exc:
+        flash(str(exc), "error")
+        data = {"page": 1, "per_page": 20, "total": 0, "total_pages": 0, "count": 0, "leads": []}
+
+    return render_template(
+        "dashboard/wordpress_leads.html",
+        data=data, leads=data.get("leads", []),
+        statuses=wordpress_service.status_choices(),
+        active_status=status or "", search=search or "",
+    )
+
+
+@dashboard_bp.route("/wordpress-leads/<int:entry_id>")
+@login_required
+def wordpress_lead_detail(entry_id: int):
+    try:
+        lead = wordpress_service.get_lead(entry_id)
+    except WordPressAPIError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        flash(str(exc), "error")
+        return redirect(url_for("dashboard.wordpress_leads"))
+    return render_template(
+        "dashboard/wordpress_lead_detail.html",
+        lead=lead, statuses=wordpress_service.status_choices(),
+    )
+
+
+@dashboard_bp.route("/wordpress-leads/<int:entry_id>/status", methods=["POST"])
+@login_required
+def update_wordpress_lead_status(entry_id: int):
+    status = (request.form.get("status") or "").strip()
+    try:
+        wordpress_service.update_status(entry_id, status)
+        flash("WordPress lead status updated.", "success")
+    except WordPressAPIError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        flash(str(exc), "error")
+    return redirect(url_for("dashboard.wordpress_lead_detail", entry_id=entry_id))
 
 
 @dashboard_bp.route("/leads/export.csv")

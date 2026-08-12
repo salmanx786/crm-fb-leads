@@ -153,20 +153,14 @@
     </div>
   </div>
 
-  {# Responded / not-responded / not-contacted funnel (1/3 width). #}
+  {# Per-status breakdown (1/3 width): a count for every lifecycle stage. #}
   <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
     <h2 class="text-base font-semibold text-slate-900">Outcome breakdown</h2>
     <dl class="mt-4 space-y-3 text-sm">
-      {% for label, value, dot in [
-        ('Responded', summary.responded, 'bg-emerald-500'),
-        ('Contacted, no response', summary.not_responded, 'bg-amber-400'),
-        ('Never contacted', summary.not_contacted, 'bg-slate-300'),
-      ] %}
+      {% for item in summary.status_breakdown %}
         <div class="flex items-center justify-between">
-          <dt class="flex items-center gap-2 text-slate-600">
-            <span class="inline-block h-2.5 w-2.5 rounded-full {{ dot }}"></span>{{ label }}
-          </dt>
-          <dd class="font-semibold text-slate-800">{{ value }}</dd>
+          <dt class="text-slate-600">{{ item.status }}</dt>
+          <dd class="font-semibold text-slate-800">{{ item.count }}</dd>
         </div>
       {% endfor %}
     </dl>

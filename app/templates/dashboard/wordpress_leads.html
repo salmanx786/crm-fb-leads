@@ -1,0 +1,81 @@
+{% extends "dashboard/base.html" %}
+{% block title %}WordPress Leads — MC College{% endblock %}
+{% block page_title %}WordPress Leads{% endblock %}
+
+{% block content %}
+<form method="GET" action="{{ url_for('dashboard.wordpress_leads') }}"
+      class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search WordPress leads"
+         class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" />
+  <select name="status" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900">
+    <option value="">All statuses</option>
+    {% for value, label in statuses %}
+      <option value="{{ value }}" {{ 'selected' if value == active_status else '' }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Filter</button>
+  {% if search or active_status %}
+    <a href="{{ url_for('dashboard.wordpress_leads') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Clear</a>
+  {% endif %}
+</form>
+
+<div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+  <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <div>
+      <h2 class="font-semibold text-slate-900">Kadence form submissions</h2>
+      <p class="text-sm text-slate-500">{{ data.total }} total lead{{ '' if data.total == 1 else 's' }}</p>
+    </div>
+    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">WordPress source</span>
+  </div>
+
+  {% if leads %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <tr>
+          <th class="px-5 py-3">Name</th><th class="px-5 py-3">Phone</th>
+          <th class="px-5 py-3">Course</th><th class="px-5 py-3">City</th>
+          <th class="px-5 py-3">Status</th><th class="px-5 py-3">Received</th>
+          <th class="px-5 py-3 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+      {% for lead in leads %}
+        {% set fields = lead.fields or {} %}
+        {% set name = (fields.get('First Name', '') ~ ' ' ~ fields.get('Last Name', '')).strip() or 'Unnamed lead' %}
+        {% set status_label = dict(statuses).get(lead.status, lead.status|replace('_', ' ')|title) %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3">
+            <a href="{{ url_for('dashboard.wordpress_lead_detail', entry_id=lead.entry_id) }}" class="font-medium text-teal-700 hover:underline">{{ name }}</a>
+            <div class="text-xs text-slate-400">#{{ lead.entry_id }} · {{ lead.form_name }}</div>
+          </td>
+          <td class="px-5 py-3 text-slate-600">{{ fields.get('Student Number', '—') }}</td>
+          <td class="px-5 py-3 text-slate-600">{{ fields.get('Course You Are Interested in', '—') }}</td>
+          <td class="px-5 py-3 text-slate-600">{{ fields.get('City', '—') }}</td>
+          <td class="px-5 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ status_label }}</span></td>
+          <td class="px-5 py-3 text-slate-500">{{ lead.date_created }}</td>
+          <td class="px-5 py-3 text-right"><a href="{{ url_for('dashboard.wordpress_lead_detail', entry_id=lead.entry_id) }}" class="font-medium text-teal-700 hover:underline">View</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="px-5 py-10 text-center text-sm text-slate-500">No WordPress leads found.</p>
+  {% endif %}
+</div>
+
+{% if data.total_pages > 1 %}
+<nav class="mt-5 flex items-center justify-between" aria-label="WordPress lead pagination">
+  <div class="text-sm text-slate-500">Page {{ data.page }} of {{ data.total_pages }}</div>
+  <div class="flex gap-1">
+    {% if data.page > 1 %}
+      <a href="{{ url_for('dashboard.wordpress_leads', page=data.page - 1, q=search or none, status=active_status or none) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm">Previous</a>
+    {% endif %}
+    {% if data.page < data.total_pages %}
+      <a href="{{ url_for('dashboard.wordpress_leads', page=data.page + 1, q=search or none, status=active_status or none) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm">Next</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

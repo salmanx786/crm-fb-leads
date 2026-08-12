@@ -33,6 +33,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
+from app.constants import DEFAULT_LEAD_STATUS, LEAD_STATUSES
 from app.extensions import db
 from app.models import Lead, TimelineEvent, User
 
@@ -122,6 +123,8 @@ class LeadRecord:
     first_contact_actor_id: Optional[int]
     # Statuses the lead moved to *after* first contact, in order.
     post_contact_statuses: list[str]
+    # The lead's current lifecycle stage (its ``status`` column).
+    current_status: str
 
     @property
     def contacted(self) -> bool:
@@ -157,7 +160,7 @@ def _collect(start_utc: datetime, end_utc: datetime) -> list[LeadRecord]:
     """
     leads = list(
         db.session.execute(
-            select(Lead.id, Lead.created_at).where(
+            select(Lead.id, Lead.created_at, Lead.status).where(
                 Lead.created_at >= start_utc, Lead.created_at < end_utc
             )
         ).all()
@@ -198,6 +201,7 @@ def _collect(start_utc: datetime, end_utc: datetime) -> list[LeadRecord]:
                     first_contact_at=first.created_at,
                     first_contact_actor_id=first.actor_id,
                     post_contact_statuses=[c.to_status for c in lead_changes[1:]],
+                    current_status=row.status or DEFAULT_LEAD_STATUS,
                 )
             )
         else:
@@ -208,6 +212,7 @@ def _collect(start_utc: datetime, end_utc: datetime) -> list[LeadRecord]:
                     first_contact_at=None,
                     first_contact_actor_id=None,
                     post_contact_statuses=[],
+                    current_status=row.status or DEFAULT_LEAD_STATUS,
                 )
             )
     return records
@@ -243,7 +248,17 @@ def summarize(records: list[LeadRecord]) -> dict:
     responded = sum(1 for r in contacted if r.responded)
     times = [r.hours_to_contact for r in contacted]
 
+    # Count leads sitting in each lifecycle stage. LEAD_STATUSES is the ordered
+    # source of truth, so every stage shows (0 included) and in a stable order.
+    counts: dict[str, int] = {s: 0 for s in LEAD_STATUSES}
+    for r in records:
+        counts[r.current_status] = counts.get(r.current_status, 0) + 1
+    status_breakdown = [
+        {"status": s, "count": counts[s]} for s in LEAD_STATUSES
+    ]
+
     return {
+        "status_breakdown": status_breakdown,
         "new_leads": total,
         "contacted": len(contacted),
         "not_contacted": total - len(contacted),
