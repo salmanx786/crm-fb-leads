@@ -40,6 +40,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
+    # --- WordPress CRM API ------------------------------------------------
+    WP_CRM_API_URL = os.environ.get(
+        "WP_CRM_API_URL", "https://mccollege.edu.pk/wp-json/mc-crm/v1"
+    ).rstrip("/")
+    WP_CRM_API_KEY = os.environ.get("WP_CRM_API_KEY", "")
+    WP_CRM_TIMEOUT = int(os.environ.get("WP_CRM_TIMEOUT", "10"))
+
     # --- Meta (Facebook) Conversions API --------------------------------
     # Server-side conversion events. Disabled by default; enable per env.
     META_ENABLED = os.environ.get("META_ENABLED", "False").lower() in ("1", "true", "yes")
