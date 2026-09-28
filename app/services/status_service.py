@@ -43,8 +43,11 @@ class StatusError(Exception):
 # The standard, optimizable Meta events an admin may map a status to. Kept as a
 # fixed whitelist so an admin can only choose an event Meta actually accepts —
 # never free-type a name Meta would silently reject. NULL/"" means don't send.
+# Note: "Lead" is deliberately omitted from status choices: a lead is counted as
+# "Lead" exactly once upon form submission ("lead_created"). Mapping a later CRM
+# status to "Lead" sends a new event with a different event_id, causing Meta
+# to double-count the same person in Ads Manager.
 META_EVENT_CHOICES: tuple[str, ...] = (
-    "Lead",
     "Contact",
     "Schedule",
     "SubmitApplication",
@@ -91,9 +94,11 @@ def is_valid_status(name: str) -> bool:
 
 
 def meta_event_for(status: str) -> Optional[str]:
-    """The Meta event a status reports, or None if unmapped / unknown."""
+    """The Meta event a status reports, or None if unmapped / unknown / disbarred."""
     row = db.session.scalar(db.select(LeadStatus).where(LeadStatus.name == status))
-    return row.meta_event if row is not None else None
+    if row and row.meta_event in META_EVENT_CHOICES:
+        return row.meta_event
+    return None
 
 
 def leads_using(name: str) -> int:

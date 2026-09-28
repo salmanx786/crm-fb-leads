@@ -48,6 +48,7 @@ MAIL_SMTP_PORT = "MAIL_SMTP_PORT"
 MAIL_USERNAME = "MAIL_USERNAME"
 MAIL_PASSWORD = "MAIL_PASSWORD"
 MAIL_FROM = "MAIL_FROM"
+ADMISSIONS_NOTIFY_EMAIL = "ADMISSIONS_NOTIFY_EMAIL"
 
 # Keys whose stored value is a secret — masked in the UI, never logged.
 SECRET_KEYS = frozenset({META_ACCESS_TOKEN, VAPID_PRIVATE_KEY, MAIL_PASSWORD})
@@ -187,6 +188,7 @@ def save_mail_settings(data: dict) -> None:
               if data.get("smtp_port") not in (None, "") else None)
     set_value(MAIL_USERNAME, (data.get("username") or "").strip() or None)
     set_value(MAIL_FROM, (data.get("from_address") or "").strip() or None)
+    set_value(ADMISSIONS_NOTIFY_EMAIL, (data.get("admissions_notify_email") or "").strip() or None)
 
     # Password: only overwrite when a non-empty value was submitted.
     password = (data.get("password") or "").strip()
@@ -208,5 +210,6 @@ def mail_settings_view() -> dict:
         "smtp_port": get_str(MAIL_SMTP_PORT),
         "username": get_str(MAIL_USERNAME),
         "from_address": get_str(MAIL_FROM),
+        "admissions_notify_email": get_str(ADMISSIONS_NOTIFY_EMAIL),
         "has_password": bool(get_str(MAIL_PASSWORD)),
     }

@@ -84,16 +84,34 @@ def _register_context_processors(app: Flask) -> None:
         # Pixel id resolves through settings_service (dashboard value, else
         # env), so enabling the pixel from the admin UI lights up the browser
         # tag too. Only fire the browser pixel when Meta is enabled.
-        from app.services import settings_service
+        from app.services import content_service, settings_service
 
         pixel_id = ""
         if settings_service.get_bool(settings_service.META_ENABLED):
             pixel_id = settings_service.get_str(settings_service.META_PIXEL_ID)
+
+        site_logo = None
+        try:
+            site_logo = content_service.resolve_slot("logo_mc")
+        except Exception:
+            pass
+
         return {
             "current_year": datetime.utcnow().year,
             "meta_pixel_id": pixel_id,
             "meta_event_id": uuid.uuid4().hex,
+            "site_logo": site_logo,
         }
+
+    @app.template_filter("clean_wa_phone")
+    def clean_wa_phone(phone: str) -> str:
+        if not phone:
+            return ""
+        digits = "".join(c for c in phone if c.isdigit())
+        if digits.startswith("0") and len(digits) == 11:
+            return "92" + digits[1:]
+        return digits
+
 
 
 def _register_cli(app: Flask) -> None:

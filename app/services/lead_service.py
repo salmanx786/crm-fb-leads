@@ -3,9 +3,11 @@
 Every write goes through here so that side effects (timeline events, field
 normalisation, validation) happen consistently regardless of the caller.
 """
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from typing import Optional
 
+from flask import current_app
 from sqlalchemy import select
 
 from app.constants import DEFAULT_LEAD_STATUS
@@ -18,6 +20,45 @@ from app.utils.logger import get_logger
 from app.utils.validators import is_valid_email, is_valid_phone, is_nonempty
 
 logger = get_logger(__name__)
+
+_executor = ThreadPoolExecutor(max_workers=4)
+DEBOUNCE_MINUTES = 5
+
+
+def _run_side_effects(app, lead_id: int, event_id: Optional[str] = None) -> None:
+    """Run Meta CAPI, push notification, and email delivery in a background thread."""
+    with app.app_context():
+        lead = db.session.get(Lead, lead_id)
+        if not lead:
+            return
+
+        # Fire the Meta conversion event (no-op if disabled/untracked; never raises).
+        try:
+            meta_service.track_event(lead, "lead_created", event_id=event_id)
+        except Exception:
+            logger.exception("Meta tracking failed for lead %s", lead_id)
+
+        # Alert logged-in admins in real time (no-op if push is disabled).
+        try:
+            push_service.notify_all_admins(
+                title="New lead",
+                body=f"{lead.name} — {lead.course or 'enquiry'}",
+                url=f"/dashboard/leads/{lead.id}",
+            )
+        except Exception:
+            logger.exception("Push notification failed for lead %s", lead_id)
+
+        # Send confirmation email (no-op if disabled or email blank).
+        try:
+            email_service.notify_new_lead(lead)
+        except Exception:
+            logger.exception("Email notification failed for lead %s", lead_id)
+
+        # Notify admissions staff/counselor inbox (no-op if not configured).
+        try:
+            email_service.notify_team_new_lead(lead)
+        except Exception:
+            logger.exception("Team email notification failed for lead %s", lead_id)
 
 
 class LeadValidationError(ValueError):
@@ -85,23 +126,62 @@ def _record_event(
     )
 
 
-def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
+def create_lead(
+    data: dict,
+    tracking: Optional[dict] = None,
+    event_id: Optional[str] = None,
+) -> Lead:
     """Validate, normalise and persist a new lead from the public form.
 
     `data` holds applicant fields; `tracking` holds attribution/request
-    metadata (see utils.tracking.extract_tracking). Raises
-    LeadValidationError if the applicant fields are invalid.
+    metadata (see utils.tracking.extract_tracking). `event_id` is an optional
+    Meta event identifier shared with the client-side pixel for deduplication.
+    Raises LeadValidationError if the applicant fields are invalid.
+
+    Throttles rapid duplicate submissions: if the same phone submits within
+    DEBOUNCE_MINUTES, the existing record is updated and returned without
+    inserting a duplicate row or re-firing external conversion events.
     """
     errors = validate_lead_payload(data)
     if errors:
         raise LeadValidationError(errors)
+
+    phone = normalize_phone(data.get("phone"))
+
+    # --- Idempotency / Debounce Window ---
+    if phone:
+        cutoff = datetime.utcnow() - timedelta(minutes=DEBOUNCE_MINUTES)
+        existing = db.session.scalar(
+            select(Lead)
+            .where(Lead.phone == phone, Lead.created_at >= cutoff)
+            .order_by(Lead.created_at.desc())
+        )
+        if existing:
+            # Backfill any optional fields if previously missing
+            for field in ("email", "course", "specialization", "city", "message", "guardian_name", "guardian_phone", "address"):
+                if not getattr(existing, field):
+                    new_val = clean_str(data.get(field)) if field not in ("email", "guardian_phone") else (normalize_email(data.get(field)) if field == "email" else normalize_phone(data.get(field)))
+                    if new_val:
+                        setattr(existing, field, new_val)
+
+            _record_event(
+                existing,
+                "duplicate_throttled",
+                f"Form re-submitted within {DEBOUNCE_MINUTES} minutes (throttled).",
+            )
+            db.session.commit()
+            logger.info(
+                "Throttled duplicate submission for phone %s (reused lead_id=%s)",
+                phone, existing.id,
+            )
+            return existing
 
     tracking = tracking or {}
     lead = Lead(
         first_name=clean_str(data.get("first_name"), 60),
         last_name=clean_str(data.get("last_name"), 60),
         name=clean_str(compose_name(data), 120),
-        phone=normalize_phone(data.get("phone")),
+        phone=phone,
         email=normalize_email(data.get("email")),
         city=clean_str(data.get("city"), 120),
         course=clean_str(data.get("course"), 120),
@@ -138,18 +218,16 @@ def create_lead(data: dict, tracking: Optional[dict] = None) -> Lead:
         "Lead created: id=%s course=%s utm_source=%s",
         lead.id, lead.course or "-", lead.utm_source or "-",
     )
-    # Fire the Meta conversion event (no-op if disabled/untracked; never raises).
-    meta_service.track_event(lead, "lead_created")
-    # Alert logged-in admins in real time (no-op if push is disabled/unconfigured;
-    # never raises, so it can't affect the public submission).
-    push_service.notify_all_admins(
-        title="New lead",
-        body=f"{lead.name} — {lead.course or 'enquiry'}",
-        url=f"/dashboard/leads/{lead.id}",
-    )
-    # Send the applicant a confirmation email (no-op if email is disabled/
-    # unconfigured or the lead left the email field blank; never raises).
-    email_service.notify_new_lead(lead)
+
+    # Dispatch side-effects (Meta CAPI, push, email). In tests or when synchronous
+    # dispatch is configured, run inline; otherwise dispatch to background worker pool
+    # to maintain sub-100ms HTTP response times.
+    app = current_app._get_current_object()
+    if app.config.get("TESTING") or app.config.get("SYNC_SIDE_EFFECTS"):
+        _run_side_effects(app, lead.id, event_id=event_id)
+    else:
+        _executor.submit(_run_side_effects, app, lead.id, event_id)
+
     return lead
 
 
@@ -168,6 +246,15 @@ _EDIT_LABELS = {
     "email": "Email",
     "city": "City",
     "course": "Course",
+    "specialization": "Specialization",
+    "guardian_name": "Guardian Name",
+    "guardian_phone": "Guardian Contact",
+    "address": "Area/Locality",
+    "matric_board": "Matric Board",
+    "matric_marks": "Matric Marks",
+    "inter_board": "Intermediate Board",
+    "inter_marks": "Intermediate Marks",
+    "inter_group": "Intermediate Group",
     "status": "Status",
     "utm_source": "Source",
     "message": "Message",
@@ -199,6 +286,15 @@ def update_lead(lead: Lead, data: dict, actor_id: Optional[int] = None) -> Lead:
         "email": normalize_email(data.get("email")),
         "city": clean_str(data.get("city"), 120),
         "course": clean_str(data.get("course"), 120),
+        "specialization": clean_str(data.get("specialization"), 120),
+        "guardian_name": clean_str(data.get("guardian_name"), 120),
+        "guardian_phone": normalize_phone(data.get("guardian_phone")),
+        "address": clean_str(data.get("address"), 512),
+        "matric_board": clean_str(data.get("matric_board"), 120),
+        "matric_marks": clean_str(data.get("matric_marks"), 30),
+        "inter_board": clean_str(data.get("inter_board"), 120),
+        "inter_marks": clean_str(data.get("inter_marks"), 30),
+        "inter_group": clean_str(data.get("inter_group"), 60),
         "status": status or lead.status,
         "utm_source": clean_str(data.get("utm_source"), 120),
         "message": clean_str(data.get("message")),
@@ -465,5 +561,16 @@ def _as_dict(lead: Lead) -> dict:
         "email": lead.email,
         "city": lead.city,
         "course": lead.course,
+        "specialization": lead.specialization,
+        "guardian_name": lead.guardian_name,
+        "guardian_phone": lead.guardian_phone,
+        "address": lead.address,
+        "matric_board": lead.matric_board,
+        "matric_marks": lead.matric_marks,
+        "inter_board": lead.inter_board,
+        "inter_marks": lead.inter_marks,
+        "inter_group": lead.inter_group,
+        "status": lead.status,
+        "utm_source": lead.utm_source,
         "message": lead.message,
     }

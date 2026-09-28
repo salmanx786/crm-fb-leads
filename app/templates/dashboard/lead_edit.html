@@ -6,68 +6,158 @@
 {% block content %}
 
 {% set field = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:ring-teal-500" %}
-{% set label = "block text-sm font-medium text-slate-700" %}
+{% set label = "block text-xs font-semibold uppercase tracking-wide text-slate-600" %}
 
 <div class="mb-4">
   <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="text-sm font-medium text-teal-700 hover:underline">← Back to lead</a>
 </div>
 
-<div class="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-  <form method="POST" action="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}" class="space-y-4">
+<div class="max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <form method="POST" action="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}" class="space-y-6">
     {{ form.hidden_tag() }}  {# CSRF token #}
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div>
-        {{ form.first_name.label(class=label) }}
-        {{ form.first_name(class=field) }}
-        {% for error in form.first_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.last_name.label(class=label) }}
-        {{ form.last_name(class=field) }}
-        {% for error in form.last_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.phone.label(class=label) }}
-        {{ form.phone(class=field) }}
-        {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.email.label(class=label) }}
-        {{ form.email(class=field) }}
-        {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.city.label(class=label) }}
-        {{ form.city(class=field) }}
-        {% for error in form.city.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.course.label(class=label) }}
-        {{ form.course(class=field) }}
-        {% for error in form.course.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.status.label(class=label) }}
-        {{ form.status(class=field) }}
-        {% for error in form.status.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-      <div>
-        {{ form.utm_source.label(class=label) }}
-        {{ form.utm_source(class=field) }}
-        {% for error in form.utm_source.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-      </div>
-    </div>
-
+    {# Section 1: Personal Details #}
     <div>
-      {{ form.message.label(class=label) }}
-      {{ form.message(rows=4, class=field) }}
-      {% for error in form.message.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+      <h3 class="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-wider text-slate-800">
+        1. Personal & Contact Information
+      </h3>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          {{ form.first_name.label(class=label) }}
+          {{ form.first_name(class=field) }}
+          {% for error in form.first_name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.last_name.label(class=label) }}
+          {{ form.last_name(class=field) }}
+          {% for error in form.last_name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.phone.label(class=label) }}
+          {{ form.phone(class=field) }}
+          {% for error in form.phone.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.email.label(class=label) }}
+          {{ form.email(class=field) }}
+          {% for error in form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.city.label(class=label) }}
+          {{ form.city(class=field) }}
+          {% for error in form.city.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
     </div>
 
-    <div class="flex gap-2 pt-2">
-      <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">Save changes</button>
-      <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</a>
+    {# Section 2: Program of Interest #}
+    <div>
+      <h3 class="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-wider text-slate-800">
+        2. Program of Interest
+      </h3>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          {{ form.course.label(class=label) }}
+          {{ form.course(class=field) }}
+          {% for error in form.course.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.specialization.label(class=label) }}
+          {{ form.specialization(class=field) }}
+          {% for error in form.specialization.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# Section 3: Guardian Details & Locality #}
+    <div>
+      <h3 class="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-wider text-slate-800">
+        3. Guardian Details & Locality
+      </h3>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          {{ form.guardian_name.label(class=label) }}
+          {{ form.guardian_name(class=field) }}
+          {% for error in form.guardian_name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.guardian_phone.label(class=label) }}
+          {{ form.guardian_phone(class=field) }}
+          {% for error in form.guardian_phone.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="sm:col-span-2">
+          {{ form.address.label(class=label) }}
+          {{ form.address(class=field) }}
+          {% for error in form.address.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# Section 4: Academic Qualifications #}
+    <div>
+      <h3 class="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-wider text-slate-800">
+        4. Academic Qualifications
+      </h3>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          {{ form.matric_board.label(class=label) }}
+          {{ form.matric_board(class=field) }}
+          {% for error in form.matric_board.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.matric_marks.label(class=label) }}
+          {{ form.matric_marks(class=field) }}
+          {% for error in form.matric_marks.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.inter_board.label(class=label) }}
+          {{ form.inter_board(class=field) }}
+          {% for error in form.inter_board.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.inter_marks.label(class=label) }}
+          {{ form.inter_marks(class=field) }}
+          {% for error in form.inter_marks.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="sm:col-span-2">
+          {{ form.inter_group.label(class=label) }}
+          {{ form.inter_group(class=field) }}
+          {% for error in form.inter_group.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# Section 5: Status, Attribution & Notes #}
+    <div>
+      <h3 class="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-wider text-slate-800">
+        5. Pipeline Status & Source
+      </h3>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          {{ form.status.label(class=label) }}
+          {{ form.status(class=field) }}
+          {% for error in form.status.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+          {{ form.utm_source.label(class=label) }}
+          {{ form.utm_source(class=field) }}
+          {% for error in form.utm_source.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="sm:col-span-2">
+          {{ form.message.label(class=label) }}
+          {{ form.message(rows=3, class=field) }}
+          {% for error in form.message.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 border-t border-slate-100 pt-4">
+      <button type="submit" class="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700">
+        Save changes
+      </button>
+      <a href="{{ url_for('dashboard.lead_detail', lead_id=lead.id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+        Cancel
+      </a>
     </div>
   </form>
 </div>

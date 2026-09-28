@@ -251,3 +251,31 @@
 
 </main>
 {% endblock %}
+
+{% block scripts %}
+{% if meta_pixel_id and lead_event_id %}
+<!-- Meta Pixel Lead Event (Deduplicated against server-side CAPI via matching eventID) -->
+<script>
+  (function() {
+    var eventId = '{{ lead_event_id }}';
+    var storageKey = 'fb_lead_tracked_' + eventId;
+    if (typeof fbq === 'function') {
+      try {
+        if (!sessionStorage.getItem(storageKey)) {
+          fbq('track', 'Lead', {
+            content_name: '{{ course or "Admission Enquiry" }}',
+            status: 'submitted'
+          }, {eventID: eventId});
+          sessionStorage.setItem(storageKey, '1');
+        }
+      } catch (e) {
+        fbq('track', 'Lead', {
+          content_name: '{{ course or "Admission Enquiry" }}',
+          status: 'submitted'
+        }, {eventID: eventId});
+      }
+    }
+  })();
+</script>
+{% endif %}
+{% endblock %}

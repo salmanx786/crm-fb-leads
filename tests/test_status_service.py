@@ -47,7 +47,7 @@ def test_add_status_rejects_blank(app):
 
 def test_add_status_rejects_duplicate_case_insensitive(app):
     with pytest.raises(StatusError):
-        status_service.add_status("interested", "Lead")  # "Interested" seeded
+        status_service.add_status("interested", "Contact")  # "Interested" seeded
 
 
 def test_add_status_unknown_meta_event_is_dropped(app):
@@ -82,10 +82,10 @@ def test_rename_cascades_to_existing_leads(app):
 
 
 def test_rename_preserves_meta_mapping(app):
-    row = next(r for r in status_service.get_status_rows() if r.name == "Interested")
+    row = next(r for r in status_service.get_status_rows() if r.name == "Documents Pending")
     status_service.rename_status(row.id, "Hot Lead")
-    # "Interested" mapped to "Lead" in the seed; the mapping follows the rename.
-    assert status_service.meta_event_for("Hot Lead") == "Lead"
+    # "Documents Pending" mapped to "SubmitApplication" in the seed; the mapping follows the rename.
+    assert status_service.meta_event_for("Hot Lead") == "SubmitApplication"
 
 
 def test_rename_rejects_duplicate(app):

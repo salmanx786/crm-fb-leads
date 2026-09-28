@@ -98,6 +98,17 @@
       {% for e in form.from_address.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
     </div>
 
+    {# ---- Admissions team notification recipient ---- #}
+    <div>
+      <label class="block text-sm font-medium text-slate-700">{{ form.admissions_notify_email.label.text }}</label>
+      {{ form.admissions_notify_email(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500",
+                                      placeholder="admissions.team@mccollege.edu.pk") }}
+      <p class="mt-1 text-xs text-slate-500">
+        Staff inbox to notify immediately when a new lead registers on the landing page. Leave blank to disable team alerts.
+      </p>
+      {% for e in form.admissions_notify_email.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+    </div>
+
     <div class="flex justify-end border-t border-slate-100 pt-4">
       <button type="submit"
               class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">

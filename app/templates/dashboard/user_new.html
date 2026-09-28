@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Add Team Member — MC College{% endblock %}
+{% block page_title %}Add Team Member{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl space-y-6">
+
+  <div>
+    <a href="{{ url_for('dashboard.users') }}" class="text-sm font-medium text-teal-700 hover:underline">← Back to Users</a>
+    <h1 class="mt-2 text-2xl font-bold text-slate-900">Add Team Member</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      Create a new user account with login credentials for the admissions CRM.
+    </p>
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ url_for('dashboard.user_new') }}" class="space-y-4">
+      {{ form.hidden_tag() }}
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Full Name</label>
+        {{ form.name(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="e.g. Dr. Ayesha Siddiqui") }}
+        {% for error in form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Email Address</label>
+        {{ form.email(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="counselor@mccollege.edu.pk") }}
+        {% for error in form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Role</label>
+        {{ form.role(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        <p class="mt-1 text-xs text-slate-400">Administrators have full system and settings access. Admissions Counselors handle student follow-ups.</p>
+        {% for error in form.role.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Password (minimum 6 characters)</label>
+        {{ form.password(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500", placeholder="Temporary password") }}
+        {% for error in form.password.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="flex items-center gap-3 pt-3">
+        <button type="submit" class="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700">
+          Create Account
+        </button>
+        <a href="{{ url_for('dashboard.users') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

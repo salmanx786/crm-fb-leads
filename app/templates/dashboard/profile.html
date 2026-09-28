@@ -1,0 +1,93 @@
+{% extends "dashboard/base.html" %}
+{% block title %}My Profile — MC College{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Account Profile</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      Manage your personal account details and security settings.
+    </p>
+  </div>
+
+  {# Card 1: Account Information #}
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900">Personal Information</h2>
+        <p class="text-xs text-slate-500">Update your name and email address.</p>
+      </div>
+      <div>
+        {% if current_user.role == 'admin' %}
+          <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">Administrator</span>
+        {% else %}
+          <span class="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">Admissions Counselor</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('dashboard.profile') }}" class="mt-5 space-y-4">
+      {{ profile_form.hidden_tag() }}
+      <input type="hidden" name="form_action" value="update_profile" />
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Full Name</label>
+        {{ profile_form.name(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in profile_form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Email Address</label>
+        {{ profile_form.email(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in profile_form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Card 2: Change Password #}
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-base font-semibold text-slate-900">Security & Password</h2>
+      <p class="text-xs text-slate-500">Ensure your account is using a secure, unique password.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('dashboard.profile') }}" class="mt-5 space-y-4">
+      {{ password_form.hidden_tag() }}
+      <input type="hidden" name="form_action" value="change_password" />
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Current Password</label>
+        {{ password_form.old_password(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in password_form.old_password.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">New Password (minimum 6 characters)</label>
+        {{ password_form.new_password(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in password_form.new_password.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700">Confirm New Password</label>
+        {{ password_form.confirm_password(class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500") }}
+        {% for error in password_form.confirm_password.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700">
+          Update Password
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

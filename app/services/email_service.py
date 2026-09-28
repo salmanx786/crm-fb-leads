@@ -157,3 +157,62 @@ def notify_new_lead(lead: Lead) -> bool:
     except Exception:  # pragma: no cover - defensive catch-all
         logger.exception("notify_new_lead failed for lead=%s", getattr(lead, "id", "?"))
         return False
+
+
+def notify_team_new_lead(lead: Lead) -> bool:
+    """Send an alert to the admissions staff when a new lead is captured.
+
+    Sends to the configured ADMISSIONS_NOTIFY_EMAIL in mail settings.
+    No-op if email or admissions_notify_email is not configured. Never raises.
+    """
+    try:
+        if not is_configured():
+            return False
+
+        from app.services import settings_service as s
+
+        team_email = s.get_str(s.ADMISSIONS_NOTIFY_EMAIL).strip()
+        if not team_email:
+            return False
+
+        cfg = _config()
+        prog = (lead.course or "Enquiry").strip()
+        if lead.specialization:
+            prog += f" ({lead.specialization})"
+
+        subject = f"[New Lead] {lead.name} — {prog}"
+        lines = [
+            f"A new admission enquiry has been submitted on the landing page.",
+            "",
+            f"Lead ID: #{lead.id}",
+            f"Applicant Name: {lead.name}",
+            f"Phone: {lead.phone}",
+            f"Email: {lead.email or '—'}",
+            f"City: {lead.city or '—'}",
+            f"Program: {prog}",
+            "",
+            "--- Academic Qualifications ---",
+            f"Matric: {lead.matric_board or '—'} ({lead.matric_marks or '—'})",
+            f"Intermediate: {lead.inter_board or '—'} ({lead.inter_marks or '—'}, {lead.inter_group or '—'})",
+            "",
+            "--- Guardian & Locality ---",
+            f"Guardian Name: {lead.guardian_name or '—'}",
+            f"Guardian Contact: {lead.guardian_phone or '—'}",
+            f"Area / Address: {lead.address or '—'}",
+            "",
+            "--- Attribution ---",
+            f"Source: {lead.utm_source or 'Direct'}",
+            f"Campaign: {lead.utm_campaign or '—'}",
+            f"Medium: {lead.utm_medium or '—'}",
+            "",
+            f"Manage this lead in the dashboard: /dashboard/leads/{lead.id}",
+        ]
+        body = "\n".join(lines)
+        sent = _send(team_email, subject, body, cfg)
+        if sent:
+            logger.info("Admissions team email alert sent for lead=%s", lead.id)
+        return sent
+    except Exception:  # pragma: no cover
+        logger.exception("notify_team_new_lead failed for lead=%s", getattr(lead, "id", "?"))
+        return False
+

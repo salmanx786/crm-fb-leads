@@ -163,3 +163,34 @@ def test_create_lead_succeeds_when_smtp_fails(app, mail_on):
 
     assert lead.id is not None
     assert lead.name == "Test User"
+
+
+def test_notify_team_new_lead_success(app, mail_on, a_lead):
+    """notify_team_new_lead sends summary email to the admissions team."""
+    from app.services import settings_service
+
+    settings_service.set_value(settings_service.ADMISSIONS_NOTIFY_EMAIL, "team@mccollege.edu.pk")
+    mock_smtp = MagicMock()
+    with patch("smtplib.SMTP", return_value=mock_smtp):
+        sent = email_service.notify_team_new_lead(a_lead)
+
+    assert sent is True
+    assert mock_smtp.__enter__.return_value.send_message.called
+    msg = mock_smtp.__enter__.return_value.send_message.call_args[0][0]
+    assert msg["To"] == "team@mccollege.edu.pk"
+    assert "[New Lead]" in msg["Subject"]
+    assert "Sara Ahmed" in msg.get_content()
+
+
+def test_notify_team_new_lead_noop_when_not_configured(app, mail_on, a_lead):
+    """When ADMISSIONS_NOTIFY_EMAIL is empty, notify_team_new_lead is a safe no-op."""
+    from app.services import settings_service
+
+    settings_service.set_value(settings_service.ADMISSIONS_NOTIFY_EMAIL, "")
+    mock_smtp = MagicMock()
+    with patch("smtplib.SMTP", return_value=mock_smtp):
+        sent = email_service.notify_team_new_lead(a_lead)
+
+    assert sent is False
+    assert not mock_smtp.__enter__.return_value.send_message.called
+

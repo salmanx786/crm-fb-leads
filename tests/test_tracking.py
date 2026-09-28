@@ -48,3 +48,20 @@ def test_extract_tracking_includes_fbc_and_fbp():
     assert tracking["fbc"] == "fb.1.123.x"
     assert tracking["fbp"] == "fb.1.456.y"
     assert tracking["user_agent"] == "Mozilla/5.0"
+
+
+def test_extract_tracking_uses_fallback_when_empty_args():
+    req = _request()
+    fallback = {
+        "utm_source": "facebook",
+        "utm_medium": "cpc",
+        "utm_campaign": "admissions_2026",
+        "fbclid": "xyz987",
+    }
+    tracking = extract_tracking(req, fallback=fallback)
+    assert tracking["utm_source"] == "facebook"
+    assert tracking["utm_medium"] == "cpc"
+    assert tracking["utm_campaign"] == "admissions_2026"
+    assert tracking["fbc"] is not None
+    assert "xyz987" in tracking["fbc"]
+

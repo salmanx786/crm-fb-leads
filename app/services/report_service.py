@@ -124,7 +124,7 @@ class LeadRecord:
     # Statuses the lead moved to *after* first contact, in order.
     post_contact_statuses: list[str]
     # The lead's current lifecycle stage (its ``status`` column).
-    current_status: str
+    current_status: str = "New"
 
     @property
     def contacted(self) -> bool:

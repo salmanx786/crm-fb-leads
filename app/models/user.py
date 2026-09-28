@@ -16,6 +16,7 @@ class User(UserMixin, BaseModel):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_active_flag = db.Column("is_active", db.Boolean, default=True, nullable=False)
+    role = db.Column(db.String(32), default="admin", nullable=False, server_default="admin")
 
     def set_password(self, password: str) -> None:
         # pbkdf2:sha256 is available in every Python/OpenSSL build (unlike
@@ -30,6 +31,10 @@ class User(UserMixin, BaseModel):
     @property
     def is_active(self) -> bool:  # used by Flask-Login
         return self.is_active_flag
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

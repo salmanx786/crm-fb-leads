@@ -9,9 +9,16 @@ from wtforms import (
     StringField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional, Regexp
 
-from app.services.reference_service import get_courses, get_statuses
+from app.services.reference_service import (
+    get_bsmt_specializations,
+    get_courses,
+    get_education_boards,
+    get_intermediate_types,
+    get_marks_ranges,
+    get_statuses,
+)
 
 # Accepts digits, spaces, +, -, and parentheses; 7–20 chars. Matches the
 # public AdmissionForm so a lead's phone validates identically on edit.
@@ -57,7 +64,7 @@ class FollowUpForm(FlaskForm):
 
 
 class LeadEditForm(FlaskForm):
-    """Edit a lead's applicant fields, status, and source.
+    """Edit a lead's applicant fields, status, source, guardian, and academic history.
 
     Field names match Lead attributes so the route can prefill with
     `LeadEditForm(obj=lead)` and hand `form.data` straight to
@@ -94,21 +101,49 @@ class LeadEditForm(FlaskForm):
     )
     city = StringField("City", validators=[Optional(), Length(max=120)])
     course = SelectField("Course", validators=[Optional()])
+    specialization = SelectField("Specialization (BSMT)", validators=[Optional()])
+
+    # Guardian & locality
+    guardian_name = StringField("Guardian / Parent Name", validators=[Optional(), Length(max=120)])
+    guardian_phone = StringField(
+        "Guardian Contact",
+        validators=[
+            Optional(),
+            Regexp(_PHONE_PATTERN, message="Please enter a valid guardian phone number."),
+        ],
+    )
+    address = StringField("Area / Locality", validators=[Optional(), Length(max=512)])
+
+    # Academic qualifications
+    matric_board = SelectField("Matric Board", validators=[Optional()])
+    matric_marks = SelectField("Matric Marks", validators=[Optional()])
+    inter_board = SelectField("Intermediate Board", validators=[Optional()])
+    inter_marks = SelectField("Intermediate Marks", validators=[Optional()])
+    inter_group = SelectField("Intermediate Study Group", validators=[Optional()])
+
     # "Source" is stored as utm_source on the model.
     utm_source = StringField("Source", validators=[Optional(), Length(max=120)])
     status = SelectField("Status", validators=[DataRequired()])
     # "Notes" maps to the lead's free-text message field.
-    message = TextAreaField("Notes", validators=[Optional(), Length(max=2000)])
+    message = TextAreaField("Notes / Comments", validators=[Optional(), Length(max=2000)])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Blank option keeps course optional; choices come from the same
-        # source as the public form so they never drift.
-        self.course.choices = [("", "Select a course")] + [
-            (c, c) for c in get_courses()
+        self.course.choices = [("", "Select a course")] + [(c, c) for c in get_courses()]
+        self.specialization.choices = [("", "Select specialization (if BSMT)")] + [
+            (s, s) for s in get_bsmt_specializations()
         ]
-        # Status choices come from the admin-editable status_service at request
-        # time (not class-definition time) so edits take effect immediately.
+        board_choices = [("", "Select examination board")] + [(b, b) for b in get_education_boards()]
+        self.matric_board.choices = board_choices
+        self.inter_board.choices = board_choices
+
+        marks_choices = [("", "Select marks band")] + [(m, m) for m in get_marks_ranges()]
+        self.matric_marks.choices = marks_choices
+        self.inter_marks.choices = marks_choices
+
+        self.inter_group.choices = [("", "Select study group")] + [
+            (g, g) for g in get_intermediate_types()
+        ]
         self.status.choices = [(s, s) for s in get_statuses()]
 
 
@@ -238,3 +273,80 @@ class MailSettingsForm(FlaskForm):
         "From address",
         validators=[Optional(), Email("Please enter a valid email."), Length(max=255)],
     )
+    admissions_notify_email = StringField(
+        "Admissions team alert email",
+        validators=[Optional(), Email("Please enter a valid email address."), Length(max=255)],
+    )
+
+
+class UserCreateForm(FlaskForm):
+    """Create a new user / staff member."""
+
+    name = StringField(
+        "Full Name",
+        validators=[DataRequired("Please enter the user's name."), Length(min=2, max=120)],
+    )
+    email = StringField(
+        "Email Address",
+        validators=[DataRequired("Please enter an email address."), Email("Please enter a valid email address."), Length(max=255)],
+    )
+    password = PasswordField(
+        "Password",
+        validators=[DataRequired("Please enter a temporary password."), Length(min=6, max=100, message="Password must be at least 6 characters.")],
+    )
+    role = SelectField(
+        "Role",
+        choices=[("admin", "Administrator"), ("counselor", "Admissions Counselor")],
+        default="admin",
+        validators=[DataRequired()],
+    )
+
+
+class ProfileForm(FlaskForm):
+    """Update current user's profile details."""
+
+    name = StringField(
+        "Full Name",
+        validators=[DataRequired("Please enter your name."), Length(min=2, max=120)],
+    )
+    email = StringField(
+        "Email Address",
+        validators=[DataRequired("Please enter your email."), Email("Please enter a valid email address."), Length(max=255)],
+    )
+
+
+class ChangePasswordForm(FlaskForm):
+    """Change current user's password."""
+
+    old_password = PasswordField(
+        "Current Password",
+        validators=[DataRequired("Please enter your current password.")],
+    )
+    new_password = PasswordField(
+        "New Password",
+        validators=[DataRequired("Please enter your new password."), Length(min=6, max=100, message="Password must be at least 6 characters.")],
+    )
+    confirm_password = PasswordField(
+        "Confirm New Password",
+        validators=[
+            DataRequired("Please confirm your new password."),
+            EqualTo("new_password", message="Passwords must match."),
+        ],
+    )
+
+
+class AdminResetPasswordForm(FlaskForm):
+    """Reset a user's password by administrator."""
+
+    new_password = PasswordField(
+        "New Password",
+        validators=[DataRequired("Please enter the new password."), Length(min=6, max=100, message="Password must be at least 6 characters.")],
+    )
+    confirm_password = PasswordField(
+        "Confirm New Password",
+        validators=[
+            DataRequired("Please confirm the new password."),
+            EqualTo("new_password", message="Passwords must match."),
+        ],
+    )
+

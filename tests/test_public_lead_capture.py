@@ -179,3 +179,95 @@ def test_thank_you_dpt_below_threshold_message(client):
     assert "Thank you, Sana" in body
     # "Below 60%" has no reliable floor -> provisional "Eligibility check" card.
     assert "Eligibility check" in body
+
+
+def test_duplicate_submission_within_debounce_window_is_throttled(client, app):
+    """Submitting the same phone number within 5 minutes throttles duplicate creation."""
+    token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    payload = {
+        "csrf_token": token,
+        "first_name": "Tariq",
+        "last_name": "Mahmood",
+        "phone": "+92 333 4445555",
+        "course": "DPT",
+    }
+    # 1. First submission succeeds and creates a lead
+    resp1 = client.post("/admission", data=payload)
+    assert resp1.status_code == 302
+
+    with app.app_context():
+        leads = db.session.scalars(select(Lead).where(Lead.phone == "+923334445555")).all()
+        assert len(leads) == 1
+        initial_id = leads[0].id
+
+    # 2. Second rapid submission with same phone
+    token2 = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    payload["csrf_token"] = token2
+    payload["message"] = "Additional message"
+    resp2 = client.post("/admission", data=payload)
+    assert resp2.status_code == 302
+
+    with app.app_context():
+        leads_after = db.session.scalars(select(Lead).where(Lead.phone == "+923334445555")).all()
+        # Still exactly 1 lead in the database!
+        assert len(leads_after) == 1
+        lead = leads_after[0]
+        assert lead.id == initial_id
+        # Timeline recorded the throttled duplicate
+        events = db.session.scalars(select(TimelineEvent).where(TimelineEvent.lead_id == lead.id)).all()
+        types = [e.event_type for e in events]
+        assert "created" in types
+        assert "duplicate_throttled" in types
+
+
+def test_attribution_preserved_from_landing_to_post(client, app):
+    """Visiting / with UTMs preserves attribution even when /admission POST has no query params."""
+    # 1. User visits landing page from Facebook Ad
+    get_resp = client.get("/?utm_source=facebook&utm_medium=paid_social&utm_campaign=admissions_2026&fbclid=fb_click_123")
+    assert get_resp.status_code == 200
+    token = _extract_csrf_token(get_resp.get_data(as_text=True))
+
+    # 2. User submits without query params on the POST URL
+    post_resp = client.post(
+        "/admission",
+        data={
+            "csrf_token": token,
+            "first_name": "Zain",
+            "last_name": "Ali",
+            "phone": "+92 345 6789012",
+            "course": "DPT",
+        },
+    )
+    assert post_resp.status_code == 302
+
+    with app.app_context():
+        lead = db.session.scalar(select(Lead).where(Lead.phone == "+923456789012"))
+        assert lead is not None
+        assert lead.utm_source == "facebook"
+        assert lead.utm_medium == "paid_social"
+        assert lead.utm_campaign == "admissions_2026"
+        assert lead.fbc is not None
+        assert "fb_click_123" in lead.fbc
+
+
+def test_thank_you_renders_deduplicated_meta_pixel_lead_event(app, client):
+    """When Meta Pixel is enabled, /thank-you renders fbq('track', 'Lead') with matching eventID."""
+    app.config["META_ENABLED"] = True
+    app.config["META_PIXEL_ID"] = "1234567890"
+
+    token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    client.post(
+        "/admission",
+        data={
+            "csrf_token": token,
+            "first_name": "Hina",
+            "last_name": "Altaf",
+            "phone": "+92 321 9876543",
+            "course": "DPT",
+        },
+    )
+
+    ty_body = client.get("/thank-you").get_data(as_text=True)
+    assert "fbq('track', 'Lead'" in ty_body
+    assert "eventID:" in ty_body
+

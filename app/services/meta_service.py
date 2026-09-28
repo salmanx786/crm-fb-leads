@@ -321,7 +321,9 @@ def _resolve_event(trigger: str) -> Optional[str]:
     return status_service.meta_event_for(trigger)
 
 
-def track_event(lead: Lead, trigger: str) -> Optional[MetaEvent]:
+def track_event(
+    lead: Lead, trigger: str, event_id: Optional[str] = None
+) -> Optional[MetaEvent]:
     """Fire a conversion event for a lead trigger, if one is mapped.
 
     `trigger` is either "lead_created" or a lead status. Persists a pending
@@ -329,8 +331,8 @@ def track_event(lead: Lead, trigger: str) -> Optional[MetaEvent]:
     Returns the MetaEvent row, or None when Meta is disabled or the trigger is
     untracked. Never raises — failures are persisted, not propagated.
 
-    The caller (lead_service) does not know or care whether delivery is
-    synchronous or queued; that is entirely the dispatcher's concern.
+    If `event_id` is passed, it is reused for the event (crucial for
+    deduplicating against a browser-side Pixel hit with the identical eventID).
     """
     cfg = _config()
     if not cfg["enabled"]:
@@ -344,7 +346,7 @@ def track_event(lead: Lead, trigger: str) -> Optional[MetaEvent]:
         logger.warning("Meta enabled but pixel_id/access_token missing; skipping.")
         return None
 
-    event_id = uuid.uuid4().hex
+    event_id = event_id or uuid.uuid4().hex
     payload = build_payload(lead, event_name, event_id)
 
     # Persist as pending BEFORE dispatching, so a crash mid-delivery still

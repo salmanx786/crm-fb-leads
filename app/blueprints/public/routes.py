@@ -8,6 +8,7 @@ from flask import (
     current_app,
     flash,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -16,6 +17,8 @@ from flask import (
 )
 
 from flask import session
+
+import uuid
 
 from app.blueprints.public.forms import AdmissionForm
 from app.services import content_service, lead_service
@@ -26,6 +29,7 @@ from app.utils.tracking import extract_tracking
 # Session key holding the just-submitted applicant's confirmation payload,
 # consumed once by the thank-you page (Post/Redirect/Get — no PII in the URL).
 _CONFIRMATION_KEY = "admission_confirmation"
+_ATTRIBUTION_KEY = "lead_attribution"
 
 public_bp = Blueprint("public", __name__)
 
@@ -59,7 +63,21 @@ def health():
 
 @public_bp.route("/", methods=["GET"])
 def index():
-    """Render the landing page with an empty admission form."""
+    """Render the landing page with an empty admission form.
+
+    Captures and retains campaign attribution (UTMs and fbclid) in the user's
+    session so that subsequent navigation or multi-step form actions preserve
+    attribution on submission.
+    """
+    attr = session.get(_ATTRIBUTION_KEY) or {}
+    for param in ("utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid"):
+        val = request.args.get(param)
+        if val:
+            attr[param] = val.strip()
+    if request.referrer and "referrer" not in attr:
+        attr["referrer"] = request.referrer.strip()
+    session[_ATTRIBUTION_KEY] = attr
+
     form = AdmissionForm()
     return _render_landing(form)
 
@@ -80,12 +98,17 @@ def submit_admission():
     """Handle an admission enquiry submission.
 
     On success: persist via LeadService (which records the "created" timeline
-    event), flash a confirmation, and redirect back to the landing page.
+    event), flash a confirmation, and redirect back to the thank-you page.
     On failure: re-render the page with field errors.
     """
     form = AdmissionForm()
 
     if form.validate_on_submit():
+        # Shared event_id used by both server CAPI and browser Meta Pixel
+        # so Meta deduplicates them into a single verified conversion.
+        lead_event_id = uuid.uuid4().hex
+        session_attr = session.get(_ATTRIBUTION_KEY) or {}
+
         try:
             lead_service.create_lead(
                 data={
@@ -106,7 +129,8 @@ def submit_admission():
                     "inter_marks": form.inter_marks.data,
                     "inter_group": form.inter_group.data,
                 },
-                tracking=extract_tracking(request),
+                tracking=extract_tracking(request, fallback=session_attr),
+                event_id=lead_event_id,
             )
         except LeadValidationError as exc:
             # Surface service-level validation on the matching form fields.
@@ -115,15 +139,13 @@ def submit_admission():
                 if field is not None:
                     field.errors.append(message)
         else:
-            # Stash a minimal confirmation payload for the thank-you page and
-            # redirect (Post/Redirect/Get): a refresh can't re-submit, and no
-            # applicant data travels in the URL. First name only keeps the
-            # greeting friendly without leaking the full name into the session.
+            # Stash confirmation payload for the thank-you page (Post/Redirect/Get)
             session[_CONFIRMATION_KEY] = {
                 "first_name": (form.first_name.data or "").strip(),
                 "course": form.course.data,
                 "specialization": form.specialization.data,
                 "inter_marks": form.inter_marks.data,
+                "lead_event_id": lead_event_id,
             }
             return redirect(url_for("public.thank_you"))
 
@@ -149,11 +171,19 @@ def thank_you():
     )
 
     content = content_service.get_public_content()
-    return render_template(
-        "public/thank_you.html",
-        first_name=first_name,
-        course=confirmation.get("course"),
-        specialization=confirmation.get("specialization"),
-        eligibility=eligibility,
-        **content,
+    response = make_response(
+        render_template(
+            "public/thank_you.html",
+            first_name=first_name,
+            course=confirmation.get("course"),
+            specialization=confirmation.get("specialization"),
+            eligibility=eligibility,
+            lead_event_id=confirmation.get("lead_event_id"),
+            **content,
+        )
     )
+    # Prevent browser caching of the thank-you page to avoid re-firing client-side tracking pixels on back/refresh
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+

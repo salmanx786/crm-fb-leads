@@ -200,6 +200,56 @@ def test_edit_lead_updates_fields_and_records_event(client, admin, lead, app):
         assert len(events) == 1
 
 
+def test_edit_lead_updates_all_academic_and_guardian_fields(client, admin, lead, app):
+    _login(client)
+    lead_id = lead.id
+
+    form = client.get(f"/dashboard/leads/{lead_id}/edit")
+    token = _csrf(form.get_data(as_text=True))
+
+    resp = client.post(
+        f"/dashboard/leads/{lead_id}/edit",
+        data={
+            "csrf_token": token,
+            "first_name": "Rohan",
+            "last_name": "Das",
+            "phone": lead.phone,
+            "email": lead.email,
+            "city": "Karachi",
+            "course": "BSMT",
+            "specialization": "Clinical Laboratory Sciences",
+            "guardian_name": "Dr. Das Senior",
+            "guardian_phone": "+92 300 9998888",
+            "address": "Gulshan-e-Iqbal Block 5",
+            "matric_board": "BSEK (Karachi)",
+            "matric_marks": "Above 80%",
+            "inter_board": "Federal Board (FBISE)",
+            "inter_marks": "70–80%",
+            "inter_group": "Pre-Medical",
+            "utm_source": "google_ads",
+            "status": "Documents Pending",
+            "message": "Interested in morning shift",
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+
+    with app.app_context():
+        refreshed = db.session.get(Lead, lead_id)
+        assert refreshed.course == "BSMT"
+        assert refreshed.specialization == "Clinical Laboratory Sciences"
+        assert refreshed.guardian_name == "Dr. Das Senior"
+        assert refreshed.guardian_phone == "+923009998888"
+        assert refreshed.address == "Gulshan-e-Iqbal Block 5"
+        assert refreshed.matric_board == "BSEK (Karachi)"
+        assert refreshed.matric_marks == "Above 80%"
+        assert refreshed.inter_board == "Federal Board (FBISE)"
+        assert refreshed.inter_marks == "70–80%"
+        assert refreshed.inter_group == "Pre-Medical"
+        assert refreshed.status == "Documents Pending"
+        assert refreshed.message == "Interested in morning shift"
+
+
 def test_edit_lead_invalid_phone_reraises_form(client, admin, lead, app):
     _login(client)
     lead_id = lead.id

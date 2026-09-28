@@ -21,21 +21,33 @@ from flask import (
     send_from_directory,
     url_for,
 )
-from flask_login import login_required
+from flask_login import current_user, login_required
 
-from app.services import dashboard_service, lead_service, reference_service, report_service, wordpress_service
+from app.services import (
+    dashboard_service,
+    lead_service,
+    reference_service,
+    report_service,
+    user_service,
+    wordpress_service,
+)
 from app.services.lead_service import LeadValidationError
+from app.services.user_service import UserAlreadyExistsError, UserOperationError
 from app.services.wordpress_service import WordPressAPIError
 
 from .forms import (
+    AdminResetPasswordForm,
     BulkActionForm,
+    ChangePasswordForm,
     FollowUpForm,
     LeadEditForm,
     MailSettingsForm,
     MetaSettingsForm,
     NoteForm,
+    ProfileForm,
     PushSettingsForm,
     StatusForm,
+    UserCreateForm,
 )
 
 # Follow-up filter options surfaced as toggle links on the leads list.
@@ -726,6 +738,7 @@ def mail_settings():
                 "username": form.username.data,
                 "password": form.password.data,
                 "from_address": form.from_address.data,
+                "admissions_notify_email": form.admissions_notify_email.data,
             }
         )
         flash("Email settings saved.", "success")
@@ -738,6 +751,7 @@ def mail_settings():
         form.smtp_port.data = int(view["smtp_port"]) if view["smtp_port"] else None
         form.username.data = view["username"]
         form.from_address.data = view["from_address"]
+        form.admissions_notify_email.data = view.get("admissions_notify_email", "")
 
     return render_template(
         "dashboard/settings_email.html",
@@ -807,3 +821,124 @@ def _current_user_id():
     from flask_login import current_user
 
     return getattr(current_user, "id", None)
+
+
+# --- User Management & Profile -----------------------------------------------
+
+
+@dashboard_bp.route("/users")
+@login_required
+def users():
+    """List all registered users/staff."""
+    all_users = user_service.list_users()
+    reset_form = AdminResetPasswordForm()
+    return render_template(
+        "dashboard/users.html",
+        users=all_users,
+        reset_form=reset_form,
+    )
+
+
+@dashboard_bp.route("/users/new", methods=["GET", "POST"])
+@login_required
+def user_new():
+    """Create a new user / staff member."""
+    form = UserCreateForm()
+    if form.validate_on_submit():
+        try:
+            user = user_service.create_user(
+                name=form.name.data,
+                email=form.email.data,
+                password=form.password.data,
+                role=form.role.data,
+            )
+            flash(f"User “{user.name}” ({user.email}) created successfully.", "success")
+            return redirect(url_for("dashboard.users"))
+        except (UserAlreadyExistsError, ValueError) as exc:
+            flash(str(exc), "error")
+
+    return render_template("dashboard/user_new.html", form=form)
+
+
+@dashboard_bp.route("/users/<int:user_id>/toggle-active", methods=["POST"])
+@login_required
+def user_toggle_active(user_id: int):
+    """Enable or disable a user account."""
+    try:
+        active = user_service.toggle_user_active(user_id, current_user.id)
+        state_str = "activated" if active else "deactivated"
+        flash(f"User account has been {state_str}.", "success")
+    except (UserOperationError, ValueError) as exc:
+        flash(str(exc), "error")
+
+    return redirect(url_for("dashboard.users"))
+
+
+@dashboard_bp.route("/users/<int:user_id>/reset-password", methods=["POST"])
+@login_required
+def user_reset_password(user_id: int):
+    """Admin reset of a user's password."""
+    target_user = user_service.get_user(user_id)
+    if not target_user:
+        flash("User not found.", "error")
+        return redirect(url_for("dashboard.users"))
+
+    form = AdminResetPasswordForm()
+    if form.validate_on_submit():
+        try:
+            user_service.change_password(
+                target_user,
+                new_password=form.new_password.data,
+                is_admin_reset=True,
+            )
+            flash(f"Password for {target_user.email} has been updated.", "success")
+        except ValueError as exc:
+            flash(str(exc), "error")
+    else:
+        for errors in form.errors.values():
+            for err in errors:
+                flash(err, "error")
+
+    return redirect(url_for("dashboard.users"))
+
+
+@dashboard_bp.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    """Manage current user's profile and change password."""
+    profile_form = ProfileForm(obj=current_user)
+    password_form = ChangePasswordForm()
+
+    if request.method == "POST":
+        action = request.form.get("form_action")
+        if action == "update_profile":
+            if profile_form.validate_on_submit():
+                try:
+                    user_service.update_profile(
+                        current_user,
+                        name=profile_form.name.data,
+                        email=profile_form.email.data,
+                    )
+                    flash("Profile updated successfully.", "success")
+                    return redirect(url_for("dashboard.profile"))
+                except (UserAlreadyExistsError, ValueError) as exc:
+                    flash(str(exc), "error")
+        elif action == "change_password":
+            if password_form.validate_on_submit():
+                try:
+                    user_service.change_password(
+                        current_user,
+                        new_password=password_form.new_password.data,
+                        old_password=password_form.old_password.data,
+                    )
+                    flash("Password changed successfully.", "success")
+                    return redirect(url_for("dashboard.profile"))
+                except ValueError as exc:
+                    flash(str(exc), "error")
+
+    return render_template(
+        "dashboard/profile.html",
+        profile_form=profile_form,
+        password_form=password_form,
+    )
+
