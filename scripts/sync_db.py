@@ -45,8 +45,14 @@ def _default_clause(column, dialect):
     """
     server_default = getattr(column, "server_default", None)
     if server_default is not None and getattr(server_default, "arg", None) is not None:
-        # Already a SQL expression/text — render it as-is.
-        return f" DEFAULT {server_default.arg.text if hasattr(server_default.arg, 'text') else server_default.arg}"
+        arg = server_default.arg.text if hasattr(server_default.arg, "text") else server_default.arg
+        if isinstance(arg, str):
+            clean = arg.strip()
+            if not (clean.startswith("'") and clean.endswith("'")) and "(" not in clean:
+                escaped = clean.replace("'", "''")
+                return f" DEFAULT '{escaped}'"
+            return f" DEFAULT {clean}"
+        return f" DEFAULT {arg}"
 
     default = getattr(column, "default", None)
     if default is None or getattr(default, "is_callable", False) or default.is_clause_element:
