@@ -144,6 +144,7 @@
       <input type="hidden" name="utm_term" value="{{ request.args.get('utm_term', '') }}">
       <input type="hidden" name="utm_content" value="{{ request.args.get('utm_content', '') }}">
       <input type="hidden" name="fbclid" value="{{ request.args.get('fbclid', '') }}">
+      <input type="hidden" name="lead_event_id" id="leadEventId" value="">
 
       {# Progress indicator #}
       <p id="stepLabel" class="text-xs font-semibold uppercase tracking-wide text-[#1a365d]">Step 1 of 3</p>
@@ -676,6 +677,36 @@
       e.preventDefault();
       return;
     }
+
+    // Ensure unique eventID for deduplication across Pixel & Conversions API
+    let leadEventInput = form.querySelector('input[name="lead_event_id"]');
+    let leadEventId = leadEventInput ? leadEventInput.value.trim() : '';
+    if (!leadEventId) {
+      leadEventId = 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      if (leadEventInput) {
+        leadEventInput.value = leadEventId;
+      }
+    }
+
+    // Send Meta Pixel Lead event immediately on form submission
+    {% if meta_pixel_id %}
+    if (typeof fbq === 'function') {
+      try {
+        const selectedCourse = (courseInput && courseInput.value) || 'Admission Enquiry';
+        fbq('track', 'Lead', {
+          content_name: selectedCourse,
+          status: 'submitted'
+        }, { eventID: leadEventId });
+        sessionStorage.setItem('fb_lead_tracked_' + leadEventId, '1');
+      } catch (err) {
+        console.error('Meta Pixel Lead tracking error:', err);
+      }
+    }
+    {% endif %}
 
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) {

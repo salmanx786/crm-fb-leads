@@ -140,7 +140,7 @@ def create_lead(
 
     Throttles rapid duplicate submissions: if the same phone submits within
     DEBOUNCE_MINUTES, the existing record is updated and returned without
-    inserting a duplicate row or re-firing external conversion events.
+    inserting a duplicate row, while still dispatching conversion events.
     """
     errors = validate_lead_payload(data)
     if errors:
@@ -164,6 +164,13 @@ def create_lead(
                     if new_val:
                         setattr(existing, field, new_val)
 
+            # Update tracking fields if new ones are provided
+            if tracking:
+                for tf in ("utm_source", "utm_medium", "utm_campaign", "referrer", "ip_address", "user_agent", "fbc", "fbp"):
+                    val = clean_str(tracking.get(tf))
+                    if val and not getattr(existing, tf, None):
+                        setattr(existing, tf, val)
+
             _record_event(
                 existing,
                 "duplicate_throttled",
@@ -174,6 +181,14 @@ def create_lead(
                 "Throttled duplicate submission for phone %s (reused lead_id=%s)",
                 phone, existing.id,
             )
+
+            # Dispatch conversion tracking and notifications on every form submission
+            app = current_app._get_current_object()
+            if app.config.get("TESTING") or app.config.get("SYNC_SIDE_EFFECTS"):
+                _run_side_effects(app, existing.id, event_id=event_id)
+            else:
+                _executor.submit(_run_side_effects, app, existing.id, event_id)
+
             return existing
 
     tracking = tracking or {}

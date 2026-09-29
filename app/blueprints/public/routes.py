@@ -106,7 +106,8 @@ def submit_admission():
     if form.validate_on_submit():
         # Shared event_id used by both server CAPI and browser Meta Pixel
         # so Meta deduplicates them into a single verified conversion.
-        lead_event_id = uuid.uuid4().hex
+        client_event_id = (request.form.get("lead_event_id") or "").strip()
+        lead_event_id = client_event_id if client_event_id else uuid.uuid4().hex
         session_attr = session.get(_ATTRIBUTION_KEY) or {}
 
         try:

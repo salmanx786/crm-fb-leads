@@ -9,7 +9,7 @@ import re
 from sqlalchemy import func, select
 
 from app.extensions import db
-from app.models import Lead, TimelineEvent
+from app.models import Lead, MetaEvent, TimelineEvent
 
 # Pulls the value out of <input ... name="csrf_token" ... value="...">
 # regardless of attribute order.
@@ -270,4 +270,104 @@ def test_thank_you_renders_deduplicated_meta_pixel_lead_event(app, client):
     ty_body = client.get("/thank-you").get_data(as_text=True)
     assert "fbq('track', 'Lead'" in ty_body
     assert "eventID:" in ty_body
+
+
+def test_landing_page_includes_lead_event_id_and_submit_tracking(app, client):
+    """The public landing page includes the lead_event_id input and submit tracking script."""
+    app.config["META_ENABLED"] = True
+    app.config["META_PIXEL_ID"] = "1234567890"
+    html = client.get("/").get_data(as_text=True)
+    assert 'name="lead_event_id"' in html
+    assert "fbq('track', 'Lead'" in html
+
+
+def test_submit_admission_accepts_client_lead_event_id(app, client):
+    """When a client provides lead_event_id on submit, it is preserved for thank-you dedup."""
+    app.config["META_ENABLED"] = True
+    app.config["META_PIXEL_ID"] = "1234567890"
+
+    token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    custom_id = "client_event_id_abcdef123456"
+    resp = client.post(
+        "/admission",
+        data={
+            "csrf_token": token,
+            "first_name": "Hamza",
+            "last_name": "Tariq",
+            "phone": "+92 322 1234567",
+            "course": "DPT",
+            "lead_event_id": custom_id,
+        },
+    )
+    assert resp.status_code == 302
+    ty_body = client.get("/thank-you").get_data(as_text=True)
+    assert f"var eventId = '{custom_id}';" in ty_body
+
+
+def test_lead_event_sent_on_every_form_submission_including_throttled(app, client, monkeypatch):
+    """Every form submission triggers a Meta CAPI Lead event, even within the debounce window."""
+    import json
+    from app.services import meta_service
+
+    app.config["META_ENABLED"] = True
+    app.config["META_PIXEL_ID"] = "1234567890"
+    app.config["META_ACCESS_TOKEN"] = "test-token"
+    app.config["SYNC_SIDE_EFFECTS"] = True
+
+    class _FakeResponse:
+        def __init__(self):
+            self.status_code = 200
+            self.text = json.dumps({"events_received": 1})
+
+        def json(self):
+            return {"events_received": 1}
+
+    monkeypatch.setattr(meta_service.requests, "post", lambda *a, **k: _FakeResponse())
+
+    # 1. First submission
+    token1 = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    client.post(
+        "/admission",
+        data={
+            "csrf_token": token1,
+            "first_name": "Farhan",
+            "last_name": "Saeed",
+            "phone": "+92 334 9998888",
+            "course": "DPT",
+            "lead_event_id": "event_submission_1",
+        },
+    )
+
+    with app.app_context():
+        events1 = db.session.scalars(
+            select(MetaEvent).filter_by(event_name="Lead")
+        ).all()
+        assert len(events1) == 1
+        assert events1[0].event_id == "event_submission_1"
+        assert events1[0].status == "sent"
+
+    # 2. Second rapid submission (same phone within debounce window)
+    token2 = _extract_csrf_token(client.get("/").get_data(as_text=True))
+    client.post(
+        "/admission",
+        data={
+            "csrf_token": token2,
+            "first_name": "Farhan",
+            "last_name": "Saeed",
+            "phone": "+92 334 9998888",
+            "course": "BSMT",
+            "specialization": "Clinical Laboratory Sciences",
+            "lead_event_id": "event_submission_2",
+        },
+    )
+
+    with app.app_context():
+        events2 = db.session.scalars(
+            select(MetaEvent).filter_by(event_name="Lead")
+        ).all()
+        # Confirms a lead event was sent on EVERY form submitted!
+        assert len(events2) == 2
+        assert {e.event_id for e in events2} == {"event_submission_1", "event_submission_2"}
+        assert all(e.status == "sent" for e in events2)
+
 
