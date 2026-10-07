@@ -47,9 +47,9 @@
     } %}
     {% set label = {'overdue': 'Overdue', 'today': 'Today', 'upcoming': 'Upcoming'} %}
     <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {{ palette.get(state, 'bg-slate-100 text-slate-700') }}"
-          title="Follow-up due {{ value.strftime('%d %b %Y, %H:%M') }}">
+          title="Follow-up due {{ value|local_time }}">
       {{ label.get(state, state) }}
-      <span class="font-normal opacity-80">{{ value.strftime('%d %b') }}</span>
+      <span class="font-normal opacity-80">{{ value|local_time('%d %b') }}</span>
     </span>
   {% else %}
     <span class="text-slate-300">—</span>

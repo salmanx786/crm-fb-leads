@@ -132,7 +132,7 @@
               <td class="px-5 py-3">{{ status_badge(lead.status) }}</td>
               <td class="px-5 py-3">{{ follow_up_badge(lead.next_follow_up_at, follow_up_state(lead.next_follow_up_at)) }}</td>
               <td class="px-5 py-3">{{ duplicate_badge(lead, duplicate_counts.get(lead.id)) }}</td>
-              <td class="px-5 py-3 text-slate-500">{{ lead.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ lead.created_at|local_time }}</td>
               <td class="px-5 py-3 text-right">
                 <a href="{{ url_for('dashboard.edit_lead', lead_id=lead.id) }}" class="font-medium text-teal-700 hover:underline">Edit</a>
               </td>

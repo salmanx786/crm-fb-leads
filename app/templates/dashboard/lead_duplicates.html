@@ -40,7 +40,7 @@
         <tr class="hover:bg-slate-50 {{ 'bg-rose-50/40' if sub.id == lead.id else '' }}">
           <td class="px-5 py-3 text-slate-600">
             <a href="{{ url_for('dashboard.lead_detail', lead_id=sub.id) }}" class="font-medium text-teal-700 hover:underline">
-              {{ sub.created_at.strftime('%d %b %Y, %H:%M') }}
+              {{ sub.created_at|local_time }}
             </a>
             {% if sub.id == lead.id %}<span class="ml-1 text-xs text-slate-400">(this lead)</span>{% endif %}
           </td>

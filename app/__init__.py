@@ -112,6 +112,12 @@ def _register_context_processors(app: Flask) -> None:
             return "92" + digits[1:]
         return digits
 
+    @app.template_filter("local_time")
+    def local_time(dt, fmt="%d %b %Y, %H:%M") -> str:
+        from app.utils.helpers import format_local_time
+
+        return format_local_time(dt, fmt=fmt)
+
 
 
 def _register_cli(app: Flask) -> None:

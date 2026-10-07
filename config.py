@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 
 # Load variables from a .env file if present (development convenience).
-load_dotenv()
+load_dotenv(override=True)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -39,6 +39,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+
+    # --- Timezone -------------------------------------------------------
+    # Business timezone for date/time display and windowing (PKT: UTC+5).
+    TIMEZONE = os.environ.get("TIMEZONE", "Asia/Karachi")
 
     # --- WordPress CRM API ------------------------------------------------
     WP_CRM_API_URL = os.environ.get(

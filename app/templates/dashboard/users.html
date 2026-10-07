@@ -61,7 +61,7 @@
               {% endif %}
             </td>
             <td class="px-6 py-4 text-xs text-slate-500">
-              {{ u.created_at.strftime('%d %b %Y') }}
+              {{ u.created_at|local_time('%d %b %Y') }}
             </td>
             <td class="px-6 py-4 text-right">
               <div class="flex items-center justify-end gap-2">

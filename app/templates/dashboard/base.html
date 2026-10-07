@@ -13,9 +13,10 @@
   {# CSRF token for fetch()-based POSTs (push subscribe/unsubscribe read this). #}
   <meta name="csrf-token" content="{{ csrf_token() }}" />
 
-  <!-- Branded browser-tab icon (same mark as the public site). -->
-  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" />
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.svg') }}" />
+  <!-- Branded browser-tab icon: Official MC College Logo -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}" />
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon.png') }}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>

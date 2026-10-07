@@ -29,7 +29,7 @@
       <div class="flex items-start justify-between">
         <div>
           <h2 class="text-xl font-bold text-slate-900">{{ lead.name }}</h2>
-          <p class="mt-1 text-sm text-slate-500">Received {{ lead.created_at.strftime('%d %b %Y at %H:%M') }}</p>
+          <p class="mt-1 text-sm text-slate-500">Received {{ lead.created_at|local_time('%d %b %Y at %H:%M') }}</p>
         </div>
         {{ status_badge(lead.status) }}
       </div>
@@ -113,7 +113,7 @@
         </div>
         {% endif %}
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">IP Address</dt><dd class="mt-0.5 font-mono text-sm text-slate-800">{{ lead.ip_address or '—' }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Submission Date &amp; Time</dt><dd class="mt-0.5 text-slate-800">{{ lead.created_at.strftime('%d %b %Y, %H:%M:%S') }} <span class="text-xs text-slate-400">UTC</span></dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Submission Date &amp; Time</dt><dd class="mt-0.5 text-slate-800">{{ lead.created_at|local_time('%d %b %Y, %H:%M:%S') }} <span class="text-xs text-slate-400">{{ lead.created_at|local_time('%Z') }}</span></dd></div>
         <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Browser / User Agent</dt><dd class="mt-0.5 break-all text-xs text-slate-600">{{ lead.user_agent or '—' }}</dd></div>
       </dl>
     </section>
@@ -128,7 +128,7 @@
               <span class="mt-1 flex h-2 w-2 flex-none rounded-full bg-teal-500"></span>
               <div>
                 <p class="text-sm text-slate-800">{{ event.description }}</p>
-                <p class="text-xs text-slate-400">{{ event.created_at.strftime('%d %b %Y, %H:%M') }}{% if event.actor %} · {{ event.actor.name }}{% endif %}</p>
+                <p class="text-xs text-slate-400">{{ event.created_at|local_time }}{% if event.actor %} · {{ event.actor.name }}{% endif %}</p>
               </div>
             </li>
           {% endfor %}
@@ -200,7 +200,7 @@
           {% for note in lead.notes %}
             <li class="rounded-lg bg-slate-50 p-3">
               <p class="whitespace-pre-line text-sm text-slate-800">{{ note.body }}</p>
-              <p class="mt-1 text-xs text-slate-400">{{ note.created_at.strftime('%d %b %Y, %H:%M') }}{% if note.author %} · {{ note.author.name }}{% endif %}</p>
+              <p class="mt-1 text-xs text-slate-400">{{ note.created_at|local_time }}{% if note.author %} · {{ note.author.name }}{% endif %}</p>
             </li>
           {% endfor %}
         </ul>

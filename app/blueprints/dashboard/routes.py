@@ -88,8 +88,13 @@ EXPORT_COLUMNS = [
 
 
 def _iso(value):
-    """ISO-8601 datetime string, or empty for a missing value."""
-    return value.isoformat() if value else ""
+    """ISO-8601 datetime string in business timezone, or empty for a missing value."""
+    if not value:
+        return ""
+    from app.utils.helpers import to_local_datetime
+
+    local_val = to_local_datetime(value)
+    return local_val.isoformat() if local_val else ""
 
 
 def _lead_csv_row(lead, duplicate_count):

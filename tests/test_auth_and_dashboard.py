@@ -424,3 +424,36 @@ def test_export_requires_login(client):
     resp = client.get("/dashboard/leads/export.csv", follow_redirects=False)
     assert resp.status_code == 302
     assert "/login" in resp.headers["Location"]
+
+
+def test_local_time_template_filter(app):
+    from datetime import datetime
+    from app.utils.helpers import format_local_time
+
+    # 12:30 UTC -> 17:30 PKT (UTC+5)
+    utc_dt = datetime(2026, 10, 7, 12, 30, 0)
+    with app.app_context():
+        formatted = format_local_time(utc_dt)
+        assert formatted == "07 Oct 2026, 17:30"
+        # Custom format with seconds and timezone name
+        detailed = format_local_time(utc_dt, "%d %b %Y, %H:%M:%S %Z")
+        assert detailed == "07 Oct 2026, 17:30:00 PKT"
+
+
+def test_dashboard_renders_localized_lead_timestamp(client, admin, app):
+    from datetime import datetime
+
+    with app.app_context():
+        utc_dt = datetime(2026, 10, 7, 12, 30, 0)
+        lead = Lead(name="TimeCheck", phone="+923001234567", created_at=utc_dt)
+        db.session.add(lead)
+        db.session.commit()
+        lead_id = lead.id
+
+    _login(client)
+    resp = client.get(f"/dashboard/leads/{lead_id}")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    # Check that 17:30 (PKT) is rendered instead of 12:30 (UTC)
+    assert "17:30:00" in html
+    assert "PKT" in html
