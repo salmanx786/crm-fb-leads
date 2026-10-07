@@ -9,4 +9,9 @@ def index():
     return {"message": "Hello from Flask"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 Default = wsgi.entrypoint(app)
