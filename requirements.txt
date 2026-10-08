@@ -22,3 +22,7 @@ python-dotenv==1.0.1
 
 # Migrations (optional but handy)
 Flask-Migrate==4.0.7
+
+# Cloudflare Workers SDK (provides workers.wsgi adapter)
+workers-runtime-sdk>=1.9.0
+
