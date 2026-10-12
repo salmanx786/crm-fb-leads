@@ -3,24 +3,44 @@
 {% block title %}Apply for DPT or BSMT — MC College of Medical &amp; Allied Health Sciences{% endblock %}
 {% block meta_description %}Apply for DPT or BSMT at MC College of Medical &amp; Allied Health Sciences — affordable, HEC-recognised, affiliated with Jinnah Sindh Medical University (JSMU). Start your application in under a minute.{% endblock %}
 
+{% block body_class %}bg-background font-body-md text-on-surface antialiased{% endblock %}
+
 {% block head_extra %}
   {# WhatsApp deep-link reused across the page (bubble, confirmation, help). #}
   {% set WHATSAPP_NUMBER = "923312004658" %}
   {% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
   <style>
-    /* Respect users who prefer reduced motion for the autoplay video/scroll. */
-    html { scroll-padding-top: 84px; } /* keep #anchors clear of the sticky trust bar */
+    @layer base {
+      html, body { margin:0; padding:0; }
+      body { overscroll-behavior:none; }
+      main>:first-child { margin-top:0!important; }
+      main>:last-child { margin-bottom:0!important; }
+    }
+    html { scroll-padding-top: 96px; }
+    ::-webkit-scrollbar { display:none; }
 
-    /* Branded hero band (addendum 3 §2/§3): full-width navy gradient with a
-       soft radial glow so the first screen reads as finished and branded,
-       never plain white/gray behind a lone card. Text sits on navy, so all
-       copy in the band is light. */
-    .hero-band {
-      background-color: #1a365d;
-      background-image:
-        radial-gradient(1200px 480px at 78% -8%, rgba(255,193,7,0.16), transparent 60%),
-        radial-gradient(900px 520px at 0% 100%, rgba(255,255,255,0.10), transparent 55%),
-        linear-gradient(180deg, #1a365d 0%, #17304f 55%, #142942 100%);
+    .form-input {
+      width: 100%;
+      border-radius: 0.5rem;
+      border: 1px solid #c4c6cf;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.95rem;
+      color: #0b1c30;
+      background: #ffffff;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus {
+      border-color: #006a61;
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(0, 106, 97, 0.15);
+    }
+    .form-input.field-invalid { border-color: #ba1a1a; }
+    .form-input.field-invalid:focus { box-shadow: 0 0 0 2px rgba(186, 26, 26, 0.15); }
+    .program-card.selected, .spec-card.selected {
+      border-color: #006a61;
+      background: #e5eeff;
+      color: #0b1c30;
     }
   </style>
 {% endblock %}
@@ -29,40 +49,86 @@
 {% set WHATSAPP_NUMBER = "923312004658" %}
 {% set WHATSAPP_URL = "https://wa.me/" ~ WHATSAPP_NUMBER ~ "?text=" ~ ("Hello, I'd like to ask about DPT / BSMT admissions." | urlencode) %}
 
-{# =====================================================================
-   Reusable logo-pair macro. Both logos always render at the SAME height
-   on a white/light panel with a neutral gray divider between them.
-   Images are expected at app/static/img/logos/ (see app/static/README.md).
-   ===================================================================== #}
-{% macro logo_pair(height="h-9", divider="h-8") %}
-  {# Logos are REQUIRED slots (no fallback) — resolved from the CMS.
-     `height` is applied to both <img>s so they scale by height only and stay
-     equal to each other; the divider height is passed in so it scales with
-     the logos rather than staying a fixed thin line. #}
+{# Reusable logo-pair macro #}
+{% macro logo_pair(height="h-8", divider="h-7") %}
   <div class="flex items-center justify-center gap-3">
-    {% if c.logo_mc %}<img src="{{ c.logo_mc }}"
-         alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto">{% endif %}
-    <span class="{{ divider }} w-px bg-[#D9D9D9]"></span>
-    {% if c.logo_jsmu %}<img src="{{ c.logo_jsmu }}"
-         alt="Jinnah Sindh Medical University (JSMU)" class="{{ height }} w-auto">{% endif %}
+    {% if c.logo_mc %}
+      <img src="{{ c.logo_mc }}" alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto object-contain">
+    {% else %}
+      <img src="https://lh3.googleusercontent.com/aida/AEtjO1UHS5kBpZTBGmF9tWoo_bhd8vieipVkda75Jz4ddvZCv6P3G1JgnnqEXLVJ9tGjEd1bk2tlIbJYZNOVBFdob8xupW6S-mp4u_a18wgb_Wh_wch0Rs-SpcseBAV2ctSpXjdYnfkcest1tFfug3fDsnpUxOKrk5CmzS_Fda_M7LoSlDk-Rl3lzxreij-Z4CwUMd7x0B5uvQl1-i6_ilGxqo7wexADfkJtiZYg5vciQFCWGr0lUGXH0P8qhRxk" alt="MC College of Medical &amp; Allied Health Sciences" class="{{ height }} w-auto object-contain">
+    {% endif %}
+    {% if c.logo_jsmu %}
+      <span class="{{ divider }} w-px bg-outline/20"></span>
+      <img src="{{ c.logo_jsmu }}" alt="Jinnah Sindh Medical University (JSMU)" class="{{ height }} w-auto object-contain">
+    {% endif %}
   </div>
 {% endmacro %}
 
-{# ============================ A. Sticky Trust Bar ============================ #}
-{# Logos enlarged (addendum 3 §1) so they read as a credibility anchor, not an
-   afterthought — bar height grows to match. #}
-<div class="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
-  {# Bar grows to fit the larger logos (mobile 42px / desktop 60px) with
-     breathing room — logos are sized by height only via the macro. #}
-  <div class="mx-auto flex h-[56px] max-w-3xl items-center justify-center px-4 sm:h-[76px]">
-    {{ logo_pair(height="h-[42px] sm:h-[60px]", divider="h-[34px] sm:h-[48px]") }}
+<!-- Fixed Top Navigation Header -->
+<header class="fixed top-0 left-0 w-full z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+  <div class="bg-primary text-on-primary border-b border-outline/20">
+    <div class="max-w-7xl mx-auto px-gutter flex flex-wrap items-center justify-between py-space-xs text-xs">
+      <div class="flex items-center gap-space-sm flex-wrap">
+        <div class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-gold-amber text-navy-dark font-label-sm uppercase tracking-wider">
+          <span class="material-symbols-outlined text-xs">verified</span>
+          <span>Recognized by JSMU &amp; Sindh Medical Faculty</span>
+        </div>
+        <span class="hidden md:inline-flex items-center gap-space-xs text-primary-fixed font-body-sm">
+          <span class="material-symbols-outlined text-xs text-secondary-fixed">location_on</span>North Nazimabad Campus, Karachi
+        </span>
+      </div>
+      <div class="flex items-center gap-space-md ml-auto">
+        <a class="hidden sm:inline-flex items-center gap-space-xs text-primary-fixed hover:text-on-primary transition-colors font-label-md" href="tel:02136684658">
+          <span class="material-symbols-outlined text-xs">call</span>021-36684658
+        </a>
+        <a class="inline-flex items-center gap-space-xs text-secondary-fixed hover:text-on-primary transition-colors font-label-md" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+          <span class="material-symbols-outlined text-xs text-whatsapp-green">chat</span>+92 331 2004658
+        </a>
+      </div>
+    </div>
   </div>
-</div>
+
+  <div class="bg-surface-container-lowest/95 backdrop-blur-md">
+    <div class="h-20 max-w-7xl mx-auto px-gutter flex items-center justify-between">
+      <div class="flex items-center gap-space-md">
+        {% if c.logo_mc %}
+          <img alt="MC College of Medical &amp; Allied Health Sciences Crest" class="h-10 w-auto object-contain" src="{{ c.logo_mc }}"/>
+        {% else %}
+          <img alt="MC College of Medical &amp; Allied Health Sciences Crest" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UHS5kBpZTBGmF9tWoo_bhd8vieipVkda75Jz4ddvZCv6P3G1JgnnqEXLVJ9tGjEd1bk2tlIbJYZNOVBFdob8xupW6S-mp4u_a18wgb_Wh_wch0Rs-SpcseBAV2ctSpXjdYnfkcest1tFfug3fDsnpUxOKrk5CmzS_Fda_M7LoSlDk-Rl3lzxreij-Z4CwUMd7x0B5uvQl1-i6_ilGxqo7wexADfkJtiZYg5vciQFCWGr0lUGXH0P8qhRxk"/>
+        {% endif %}
+        {% if c.logo_jsmu %}
+          <span class="h-8 w-px bg-slate-200"></span>
+          <img alt="Jinnah Sindh Medical University (JSMU)" class="h-10 w-auto object-contain" src="{{ c.logo_jsmu }}"/>
+        {% endif %}
+        <div class="flex flex-col">
+          <span class="font-headline-sm text-headline-sm text-navy-dark leading-tight tracking-tight">MC College</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Medical &amp; Allied Health Sciences</span>
+        </div>
+      </div>
+      <nav class="hidden lg:flex items-center gap-space-xs" data-active-classes="bg-surface-container text-primary font-label-md rounded-lg">
+        <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#programs-catalog">Programs</a>
+        <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#comparison-advantage">Eligibility &amp; Fees</a>
+        <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#accreditation-proof">JSMU Affiliation</a>
+        <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#campus-helpdesk">Campus &amp; Location</a>
+        {% if show_video %}
+          <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#principal-speech">Principal's Message</a>
+        {% endif %}
+        <a class="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#faq-section">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-space-sm">
+        <a class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-gold-amber text-navy-dark font-label-md text-label-md shadow-sm hover:opacity-95 transition-opacity active:scale-[0.98]" href="#apply">
+          <span class="material-symbols-outlined text-base">verified_user</span>
+          <span>Apply Online 2026-27</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
 
 {# ---- Flash messages (confirmation / errors) ---- #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="fixed inset-x-0 top-[60px] z-50 mx-auto max-w-md px-4 sm:top-20">
+    <div class="fixed inset-x-0 top-[84px] z-50 mx-auto max-w-md px-4">
       {% for category, message in messages %}
         {% set tone = 'bg-green-50 text-green-800 border-green-200' if category == 'success'
                       else 'bg-red-50 text-red-800 border-red-200' if category in ['error', 'danger']
@@ -73,548 +139,1159 @@
   {% endif %}
 {% endwith %}
 
-<main class="pt-[56px] sm:pt-[76px]">
+<main class="w-full pt-20 bg-background min-h-screen">
+  <div class="flex flex-col w-full">
 
-{# ============================ Micro-Hero + Form ============================ #}
-{# The fixed WhatsApp bubble and sticky "Continue" bar are hidden while the form
-   card is on screen (see the IntersectionObserver in scripts, addendum 3 §6), so
-   the form no longer needs a large bottom pad to avoid overlap — spacing is now
-   tightened (addendum 3 §5). #}
-{# Full-width branded navy band fills the whole first screen (addendum 3 §2/§3):
-   no more plain white/gray with a lone card. A subtle gradient + radial glow
-   gives the hero real visual weight edge-to-edge, while the form card stays
-   white and constrained. On desktop the band splits into headline/trust copy
-   (left) + form card (right) so the width is never left empty.
+    <!-- Interactive Top Hero Banner with Background Image & Quick Lead Form -->
+    <section id="apply" class="relative w-full overflow-hidden bg-primary px-gutter py-space-xl text-on-primary">
+      {% if c.hero_bg %}
+        {# Hero Background Photo: eager above fold, dimming navy overlay #}
+        <img src="{{ c.hero_bg }}" alt="MC College campus" fetchpriority="high"
+             class="absolute inset-0 z-0 h-full w-full object-cover">
+        <div class="absolute inset-0 z-0 bg-[#001026]/75 backdrop-blur-[1px]"></div>
+      {% endif %}
+      <div class="pointer-events-none absolute -top-24 -left-20 h-96 w-96 rounded-full bg-secondary/20 blur-3xl z-0"></div>
+      <div class="pointer-events-none absolute top-1/2 right-0 h-[450px] w-[450px] rounded-full bg-gold-amber/10 blur-[100px] z-0"></div>
+      <div class="mx-auto max-w-7xl relative z-10">
+        <div class="mb-space-md flex flex-wrap items-center justify-between gap-space-sm border-b border-outline-variant/15 pb-space-sm">
+          <div class="flex items-center gap-space-sm flex-wrap">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-gold-amber/20 px-space-sm py-1 font-label-sm text-gold-amber border border-gold-amber/30">
+              <span class="material-symbols-outlined text-[14px]">warning</span>
+              Limited Seats for 2026–2027 Fall Intake | Up to 40% Scholarship
+            </span>
+            <span class="inline-flex items-center gap-1 font-label-sm text-secondary-fixed bg-secondary-container/20 px-space-sm py-1 rounded-full">
+              <span class="material-symbols-outlined text-xs">school</span>
+              JSMU &amp; Sindh Medical Faculty Affiliated
+            </span>
+          </div>
+          <div class="flex items-center gap-space-md font-label-sm">
+            <span class="inline-flex items-center gap-1 text-slate-surface/80">
+              <span class="material-symbols-outlined text-xs text-teal-accent">timer</span>
+              Admissions Closing Soon • Fast Track 60s Approval
+            </span>
+          </div>
+        </div>
 
-   Hero Background Photo (addendum 4): when a photo is uploaded via the CMS
-   (c.hero_bg), it fills the band full-width with a semi-transparent navy
-   overlay so the white headline and the form card stay readable while the real
-   campus/affiliation signage in the photo shows faintly through as trust
-   texture. When empty, c.hero_bg is None and the section keeps the plain navy
-   band below — never a placeholder or a broken image. #}
-<section id="apply" class="hero-band relative overflow-hidden px-4 pb-12 pt-8 sm:pb-16 sm:pt-10 lg:pb-20">
-  {% if c.hero_bg %}
-    {# Photo layer + dimming navy overlay. These use z-0 (not a negative z):
-       the section doesn't create its own stacking context, so a negative
-       z-index would drop the image behind the section's opaque .hero-band
-       background and hide it. At z-0 the image paints over that background,
-       the overlay paints over the image, and the content (z-10) sits on top.
-       eager/high priority: above the fold, loads on first paint for ad traffic. #}
-    <img src="{{ c.hero_bg }}" alt="MC College campus" fetchpriority="high"
-         class="absolute inset-0 z-0 h-full w-full object-cover">
-    <div class="absolute inset-0 z-0 bg-[#1a365d]/70"></div>
-  {% endif %}
-  <div class="relative z-10 mx-auto max-w-5xl">
-    <div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-12">
+        <div class="grid grid-cols-1 items-start gap-space-xl lg:grid-cols-12">
+          <!-- Left Column: Copy & Value Proposition -->
+          <div class="flex flex-col gap-space-md lg:col-span-7">
+            <div class="inline-flex items-center gap-space-xs rounded-full bg-gold-amber px-space-md py-1 font-label-sm tracking-wider text-navy-dark font-bold uppercase w-fit shadow-md">
+              <span class="material-symbols-outlined text-[14px]">campaign</span>
+              Official Admissions Ad Portal • 2026–27
+            </div>
+            <h1 class="font-display-hero text-display-hero-mobile md:text-display-hero text-on-primary tracking-tight leading-tight">
+              {{ c.hero_headline }}
+            </h1>
+            <p class="font-body-lg text-body-lg text-surface-container-high leading-relaxed">
+              Doctor of Physical Therapy (5 Yrs) &amp; BS Medical Technology (4 Yrs). Recognized by HEC, awarded under Jinnah Sindh Medical University, backed by Mother &amp; Child Foundation.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs pt-space-xs">
+              <div class="flex items-center gap-space-sm rounded-lg bg-surface-container-lowest/5 p-space-sm backdrop-blur-sm border border-outline-variant/15">
+                <span class="material-symbols-outlined rounded-full bg-teal-accent/20 p-1 text-teal-accent text-base">check_circle</span>
+                <span class="font-label-md text-sm text-surface-bright">Affiliated with JSMU Karachi (Govt. Charter)</span>
+              </div>
+              <div class="flex items-center gap-space-sm rounded-lg bg-surface-container-lowest/5 p-space-sm backdrop-blur-sm border border-outline-variant/15">
+                <span class="material-symbols-outlined rounded-full bg-teal-accent/20 p-1 text-teal-accent text-base">check_circle</span>
+                <span class="font-label-md text-sm text-surface-bright">Lowest Fee Structure with Foundation Aid</span>
+              </div>
+              <div class="flex items-center gap-space-sm rounded-lg bg-surface-container-lowest/5 p-space-sm backdrop-blur-sm border border-outline-variant/15">
+                <span class="material-symbols-outlined rounded-full bg-teal-accent/20 p-1 text-teal-accent text-base">check_circle</span>
+                <span class="font-label-md text-sm text-surface-bright">Govt Hospital House Jobs &amp; Overseas Eligibility</span>
+              </div>
+              <div class="flex items-center gap-space-sm rounded-lg bg-surface-container-lowest/5 p-space-sm backdrop-blur-sm border border-outline-variant/15">
+                <span class="material-symbols-outlined rounded-full bg-teal-accent/20 p-1 text-teal-accent text-base">check_circle</span>
+                <span class="font-label-md text-sm text-surface-bright">Convenient North Nazimabad Campus</span>
+              </div>
+            </div>
 
-      {# ---- Headline + trust copy (left on desktop, top on mobile) ---- #}
-      <div class="text-center lg:pt-6 lg:text-left">
-        <h1 class="text-2xl font-extrabold leading-snug text-white sm:text-3xl lg:text-4xl">
-          {{ c.hero_headline }}
-        </h1>
-        <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-200 lg:mx-0 lg:text-base">
-          Affordable, HEC-recognized programs awarded under Jinnah Sindh Medical University.
-          Start your application in under a minute.
-        </p>
+            <!-- Trust Badge Card -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-dark via-primary-container to-primary shadow-xl mt-space-xs border border-blue-500/20 p-5 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                {% if c.logo_mc %}
+                  <img src="{{ c.logo_mc }}" alt="MC College" class="h-10 w-auto object-contain">
+                {% endif %}
+                {% if c.logo_jsmu %}
+                  <span class="h-7 w-px bg-white/20"></span>
+                  <img src="{{ c.logo_jsmu }}" alt="JSMU" class="h-10 w-auto object-contain">
+                {% endif %}
+                <div class="flex flex-col">
+                  <span class="font-label-md text-sm text-gold-amber font-bold">Government Chartered Degree</span>
+                  <span class="font-body-sm text-xs text-slate-300">Degree verified by JSMU &amp; Sindh Medical Faculty</span>
+                </div>
+              </div>
+              <div class="rounded-lg bg-gold-amber/90 px-2.5 py-1 text-xs font-bold text-navy-dark shadow">
+                Clinical Session 2026–27
+              </div>
+            </div>
+          </div>
 
-        {# Trust points — real content that fills the desktop left column
-           instead of empty space. Hidden on small screens to keep the mobile
-           first screen tight around the form. #}
-        <ul class="mt-6 hidden space-y-3 text-left lg:block">
-          {% for point in [
-            "Fees kept low — with Mother & Child Foundation support",
-            "Degree awarded under JSMU — recognized & verifiable",
-            "DPT (5 yrs) & BSMT (4 yrs) — apply in minutes"
-          ] %}
-            <li class="flex items-start gap-3 text-sm text-slate-100">
-              <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#ffc107] text-xs font-bold text-[#1a365d]">✓</span>
-              <span>{{ point }}</span>
-            </li>
-          {% endfor %}
+          <!-- Right Column: Quick Lead Intake Card -->
+          <div class="lg:col-span-5 flex flex-col">
+            <div class="rounded-2xl bg-slate-card p-space-lg text-on-surface shadow-2xl border-2 border-gold-amber relative overflow-hidden">
+              <div class="absolute top-0 right-0 left-0 bg-gold-amber text-navy-dark text-center py-1 font-label-sm text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-sm">bolt</span> Instant 60-Second Application
+              </div>
+              <div class="pt-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-headline-sm text-navy-dark font-bold">Apply for 2026 Intake</h3>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-teal-accent/20 px-2 py-0.5 font-label-sm text-xs text-secondary font-semibold">
+                    <span class="h-2 w-2 rounded-full bg-teal-accent animate-ping"></span> Open Now
+                  </span>
+                </div>
+                <p class="font-body-sm text-xs text-on-surface-variant mt-1">Get fee discount, eligibility evaluation, and prospectus on WhatsApp instantly.</p>
+
+                <form class="mt-space-sm flex flex-col gap-2.5" id="quick-lead-form" method="POST" action="{{ url_for('public.submit_admission') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="first_name" id="quick-first-name" value="">
+                  <input type="hidden" name="last_name" id="quick-last-name" value="">
+                  <div>
+                    <label class="font-label-sm text-xs text-navy-dark font-semibold">Full Name *</label>
+                    <input class="w-full rounded-lg bg-surface-container-low p-2.5 font-body-sm text-on-surface border border-slate-border/50 outline-none focus:bg-surface-container-lowest focus:border-secondary" id="quick-fullname-input" placeholder="e.g. Fatima Ali" required="" type="text"/>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label class="font-label-sm text-xs text-navy-dark font-semibold">WhatsApp Number *</label>
+                      <input class="w-full rounded-lg bg-surface-container-low p-2.5 font-body-sm text-on-surface border border-slate-border/50 outline-none focus:bg-surface-container-lowest focus:border-secondary" name="phone" placeholder="0331-XXXXXXX" required="" type="tel"/>
+                    </div>
+                    <div>
+                      <label class="font-label-sm text-xs text-navy-dark font-semibold">Email Address</label>
+                      <input class="w-full rounded-lg bg-surface-container-low p-2.5 font-body-sm text-on-surface border border-slate-border/50 outline-none focus:bg-surface-container-lowest focus:border-secondary" name="email" placeholder="you@gmail.com" type="email"/>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label class="font-label-sm text-xs text-navy-dark font-semibold">Program Choice *</label>
+                      <select class="w-full rounded-lg bg-surface-container-low p-2.5 font-body-sm text-on-surface border border-slate-border/50 outline-none focus:bg-surface-container-lowest focus:border-secondary" name="course" required="">
+                        <option value="DPT">DPT (5 Years)</option>
+                        <option value="BSMT">BSMT (4 Years)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="font-label-sm text-xs text-navy-dark font-semibold">Intermediate Marks *</label>
+                      <select class="w-full rounded-lg bg-surface-container-low p-2.5 font-body-sm text-on-surface border border-slate-border/50 outline-none focus:bg-surface-container-lowest focus:border-secondary" name="inter_marks" required="">
+                        <option value="Above 80%">70% or Above (Merit)</option>
+                        <option value="70–80%">60% to 70% (Eligible)</option>
+                        <option value="60–70%">50% to 60%</option>
+                        <option value="Below 60%">Result Awaiting 2026</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 pt-1">
+                    <input checked="" class="accent-secondary h-4 w-4 rounded" id="scholarship-opt" type="checkbox"/>
+                    <label class="font-label-sm text-xs text-on-surface-variant cursor-pointer" for="scholarship-opt">Apply for Mother &amp; Child Foundation Fee Scholarship (up to 40%)</label>
+                  </div>
+                  <button class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gold-amber py-3.5 font-label-lg text-navy-dark font-bold shadow-lg transition-all hover:bg-gold-amber/90 active:scale-[0.98]" type="submit">
+                    <span class="material-symbols-outlined text-xl">verified</span>
+                    <span>Check Eligibility &amp; Claim Discount Now</span>
+                  </button>
+                  <div class="flex items-center justify-center gap-1.5 text-[11px] text-on-surface-variant font-label-sm pt-1">
+                    <span class="material-symbols-outlined text-xs text-teal-accent">lock</span>
+                    <span>100% Free Consultation • Official Response via WhatsApp in 15 mins</span>
+                  </div>
+                </form>
+                <div class="mt-space-sm pt-space-xs border-t border-slate-border/50 flex items-center justify-between text-xs">
+                  <span class="text-on-surface-variant font-label-sm">Need quick answers?</span>
+                  <a class="inline-flex items-center gap-1 text-whatsapp-green font-bold hover:underline" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+                    <span class="material-symbols-outlined text-sm">chat</span> Chat Directly on WhatsApp
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sticky Quick Action Bar -->
+    <div class="w-full bg-navy-dark border-y border-outline/20 text-on-primary py-space-sm shadow-md">
+      <div class="mx-auto max-w-7xl px-gutter grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-space-sm items-center">
+        <div class="flex items-center gap-space-xs">
+          <span class="material-symbols-outlined text-gold-amber text-2xl">stars</span>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-sm text-gold-light leading-tight font-bold">4.9/5 Rating</span>
+            <span class="font-label-sm text-[11px] text-surface-container-high">450+ Student Inquiries</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-space-xs">
+          <span class="material-symbols-outlined text-teal-accent text-2xl">school</span>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-sm text-on-primary leading-tight font-bold">1,200+ Graduates</span>
+            <span class="font-label-sm text-[11px] text-surface-container-high">Employed in Top Hospitals</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-space-xs">
+          <span class="material-symbols-outlined text-secondary-fixed text-2xl">verified_user</span>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-sm text-on-primary leading-tight font-bold">JSMU Affiliated</span>
+            <span class="font-label-sm text-[11px] text-surface-container-high">Charter Verified Degree</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-space-xs">
+          <span class="material-symbols-outlined text-gold-amber text-2xl">savings</span>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-sm text-gold-light leading-tight font-bold">Up to 40% Aid</span>
+            <span class="font-label-sm text-[11px] text-surface-container-high">Mother &amp; Child Foundation</span>
+          </div>
+        </div>
+        <div class="col-span-2 sm:col-span-1 flex items-center justify-center lg:justify-end gap-space-xs">
+          <a class="inline-flex items-center gap-1 rounded-xl bg-whatsapp-green px-space-md py-2 font-label-md text-xs text-on-primary font-bold shadow hover:opacity-95 transition-all" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+            <span class="material-symbols-outlined text-sm">chat</span>
+            <span>WhatsApp Admissions</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bento Grid Architectural Section -->
+    <div class="w-full bg-slate-surface px-gutter py-space-xl">
+      <div class="mx-auto max-w-7xl">
+        <div class="grid grid-cols-1 gap-space-lg lg:grid-cols-12">
+
+          <!-- Bento Card 1: Decision Guide / Comparison (12 Cols) -->
+          <section class="rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-12 border border-slate-border/50" id="comparison-advantage">
+            <div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-md border-b border-slate-border/50">
+              <div>
+                <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Smart Student Decision Guide</span>
+                <h2 class="font-headline-md text-headline-md text-navy-dark">Why Students Choose MC College Over Other Private Institutes</h2>
+                <p class="font-body-sm text-on-surface-variant">Compare our JSMU recognized degrees, hospital clinical rotations, and foundation-subsidized fees</p>
+              </div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-gold-amber px-space-sm py-1 font-label-sm text-xs text-navy-dark font-bold shadow-sm">
+                <span class="material-symbols-outlined text-xs">verified</span> Clear Advantage
+              </span>
+            </div>
+            <div class="mt-space-md overflow-x-auto">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+                <div class="flex flex-col gap-space-sm p-space-md rounded-xl bg-surface-container-low border border-slate-border/50">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary text-2xl">verified_user</span>
+                    <span class="font-headline-sm text-base text-navy-dark font-bold">Degree Accreditation</span>
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-lowest border-l-4 border-teal-accent text-xs">
+                    <span class="font-bold text-navy-dark block text-sm">MC College</span>
+                    Affiliated with Jinnah Sindh Medical University (JSMU) &amp; Sindh Medical Faculty. 100% verified public sector degree.
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant">
+                    <span class="font-semibold block text-error">Other Colleges</span>
+                    Often unchartered, unrecognized private certificates that fail HEC verification or overseas licensing exams.
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-space-sm p-space-md rounded-xl bg-surface-container-low border border-slate-border/50">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gold-amber text-2xl">payments</span>
+                    <span class="font-headline-sm text-base text-navy-dark font-bold">Fee Structure &amp; Scholarships</span>
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-lowest border-l-4 border-gold-amber text-xs">
+                    <span class="font-bold text-navy-dark block text-sm">MC College</span>
+                    Subsidized by Mother &amp; Child Foundation. Up to 40% scholarships, affordable installments, no hidden charges.
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant">
+                    <span class="font-semibold block text-error">Other Colleges</span>
+                    Exorbitant semester packages often exceeding PKR 150k-250k with mandatory non-refundable security fees.
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-space-sm p-space-md rounded-xl bg-surface-container-low border border-slate-border/50">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary text-2xl">local_hospital</span>
+                    <span class="font-headline-sm text-base text-navy-dark font-bold">Clinical Hospital Training</span>
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-lowest border-l-4 border-teal-accent text-xs">
+                    <span class="font-bold text-navy-dark block text-sm">MC College</span>
+                    Hands-on clinical rotations at Abbasi Shaheed Hospital, Sindh Govt. Hospitals, and specialized diagnostic centers.
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant">
+                    <span class="font-semibold block text-error">Other Colleges</span>
+                    Theoretical textbook classes only, with no dedicated hospital bed allocation or live laboratory practice.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-space-md flex flex-wrap items-center justify-between gap-space-sm rounded-xl bg-navy-dark p-space-md text-on-primary">
+              <div class="flex items-center gap-space-sm">
+                <span class="material-symbols-outlined text-gold-amber text-2xl">alarm_on</span>
+                <div class="flex flex-col">
+                  <span class="font-headline-sm text-sm text-gold-light font-bold">Admissions Deadline Approaching: Fall 2026 Intake</span>
+                  <span class="font-body-sm text-xs text-surface-container-high">Limited seats per batch to preserve JSMU teacher-to-student clinical ratios.</span>
+                </div>
+              </div>
+              <a class="inline-flex items-center gap-1 rounded-xl bg-gold-amber px-space-md py-2 font-label-md text-xs text-navy-dark font-bold hover:bg-gold-amber/90 transition-all" href="#application-bento">
+                <span>Secure Your Seat Today</span>
+                <span class="material-symbols-outlined text-base">arrow_forward</span>
+              </a>
+            </div>
+          </section>
+
+          <!-- Bento Card 2: 3-Step Interactive Application Wizard (7 Cols) -->
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-7 border border-slate-border/50" id="application-bento">
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-sm">
+                <div class="flex items-center gap-space-xs">
+                  <span id="stepBadge" class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-on-secondary font-label-sm text-xs">1</span>
+                  <div>
+                    <span id="stepLabel" class="font-label-sm text-xs uppercase tracking-wider text-secondary">Step 1 of 3</span>
+                    <h2 id="stepTitle" class="font-headline-md text-headline-md text-navy-dark">Which program are you applying for?</h2>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1 rounded-full bg-gold-light px-space-sm py-1 font-label-sm text-xs text-on-tertiary-container">
+                  <span class="material-symbols-outlined text-xs">bolt</span> Instant Pre-Qualification
+                </span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="mt-space-xs mb-space-md h-2 w-full overflow-hidden rounded-full bg-surface-container">
+                <div class="h-full w-1/3 rounded-full bg-secondary transition-all duration-500" id="form-progress-bar"></div>
+              </div>
+
+              <!-- Main Application Form -->
+              <form id="admissionForm" method="POST" action="{{ url_for('public.submit_admission') }}" class="flex flex-col gap-space-md">
+                {{ form.hidden_tag() }}
+
+                <!-- STEP 1: Program Choice -->
+                <div data-step="1" class="flex flex-col gap-space-sm">
+                  <div class="grid grid-cols-1 gap-space-sm sm:grid-cols-2">
+                    <button type="button" data-program="DPT" class="program-card group relative flex cursor-pointer flex-col justify-between rounded-xl border-2 border-slate-200 bg-surface-container-low p-space-md text-left transition-all hover:border-secondary">
+                      <div class="flex items-center justify-between w-full">
+                        <span class="font-headline-sm text-headline-sm text-navy-dark">DPT</span>
+                        <span class="inline-flex items-center rounded-full bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-secondary font-bold">5 Years</span>
+                      </div>
+                      <p class="mt-2 font-body-sm text-body-sm text-on-surface-variant">Doctor of Physical Therapy. Clinical rehabilitation degree.</p>
+                      <div class="mt-space-sm flex items-center justify-between font-label-sm text-xs text-secondary">
+                        <span>JSMU Recognized</span>
+                        <span class="material-symbols-outlined text-base">check_circle</span>
+                      </div>
+                    </button>
+
+                    <button type="button" data-program="BSMT" class="program-card group relative flex cursor-pointer flex-col justify-between rounded-xl border-2 border-slate-200 bg-surface-container-low p-space-md text-left transition-all hover:border-secondary">
+                      <div class="flex items-center justify-between w-full">
+                        <span class="font-headline-sm text-headline-sm text-navy-dark">BSMT</span>
+                        <span class="inline-flex items-center rounded-full bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-secondary font-bold">4 Years</span>
+                      </div>
+                      <p class="mt-2 font-body-sm text-body-sm text-on-surface-variant">Bachelor of Science in Medical Technology. Diagnostic &amp; imaging.</p>
+                      <div class="mt-space-sm flex items-center justify-between font-label-sm text-xs text-secondary">
+                        <span>Sindh Medical Faculty</span>
+                        <span class="material-symbols-outlined text-base">check_circle</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  <!-- BSMT Specialization Selector -->
+                  <div class="hidden flex-col gap-space-xs rounded-xl bg-surface-container-low p-space-md transition-all border border-slate-border/50" id="bsmtBranch">
+                    <label class="font-label-md text-label-md text-navy-dark font-semibold">Which BSMT specialization?</label>
+                    <div class="grid grid-cols-1 gap-space-sm sm:grid-cols-2 mt-1">
+                      <button type="button" data-spec="Clinical Laboratory Sciences" class="spec-card flex cursor-pointer items-center gap-space-xs rounded-lg border-2 border-slate-200 bg-surface-container-lowest p-space-sm shadow-sm transition-all text-left hover:border-secondary">
+                        <span class="material-symbols-outlined text-secondary text-sm">biotech</span>
+                        <span class="font-label-md text-sm text-on-surface">Clinical Laboratory Sciences</span>
+                      </button>
+                      <button type="button" data-spec="Radiological Imaging" class="spec-card flex cursor-pointer items-center gap-space-xs rounded-lg border-2 border-slate-200 bg-surface-container-lowest p-space-sm shadow-sm transition-all text-left hover:border-secondary">
+                        <span class="material-symbols-outlined text-secondary text-sm">radiology</span>
+                        <span class="font-label-md text-sm text-on-surface">Radiological Imaging</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Hidden WTForm Bindings -->
+                  <div class="hidden">
+                    {{ form.course() }}
+                    {{ form.specialization() }}
+                  </div>
+                  {% for error in form.course.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+                  {% for error in form.specialization.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+
+                  <!-- Domain Trust Note -->
+                  <div class="mt-space-xs rounded-xl bg-surface-container-low p-space-md border border-slate-border/40">
+                    {{ logo_pair(height="h-9", divider="h-7") }}
+                    <p class="mt-2 text-center text-xs text-on-surface font-medium">
+                      MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
+                    </p>
+                    <p class="mt-1 text-center text-[11px] text-on-surface-variant">
+                      Official MC College admissions portal — separate from our main site for faster processing.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- STEP 2: Academic Qualifications -->
+                <div data-step="2" class="hidden flex-col gap-space-md">
+                  <div class="grid grid-cols-1 gap-space-md sm:grid-cols-2">
+                    <!-- Matriculation -->
+                    <div class="flex flex-col gap-space-xs rounded-xl bg-surface-container-low p-space-md border border-slate-border/50">
+                      <div class="flex items-center gap-1 font-label-md text-label-md text-navy-dark font-bold">
+                        <span class="material-symbols-outlined text-sm text-secondary">history_edu</span>
+                        <span>Matriculation</span>
+                      </div>
+                      <label class="font-label-sm text-xs text-on-surface-variant mt-1">Matric Board</label>
+                      {{ form.matric_board(class="w-full rounded-lg bg-surface-container-lowest p-space-xs font-body-sm text-on-surface shadow-sm border border-slate-200 outline-none focus:border-secondary") }}
+                      <label class="font-label-sm text-xs text-on-surface-variant mt-2">Matric Marks</label>
+                      {{ form.matric_marks(class="w-full rounded-lg bg-surface-container-lowest p-space-xs font-body-sm text-on-surface shadow-sm border border-slate-200 outline-none focus:border-secondary") }}
+                    </div>
+
+                    <!-- Intermediate -->
+                    <div class="flex flex-col gap-space-xs rounded-xl bg-surface-container-low p-space-md border border-slate-border/50">
+                      <div class="flex items-center gap-1 font-label-md text-label-md text-navy-dark font-bold">
+                        <span class="material-symbols-outlined text-sm text-secondary">school</span>
+                        <span>Intermediate</span>
+                      </div>
+                      <label class="font-label-sm text-xs text-on-surface-variant mt-1">Intermediate Board</label>
+                      {{ form.inter_board(class="w-full rounded-lg bg-surface-container-lowest p-space-xs font-body-sm text-on-surface shadow-sm border border-slate-200 outline-none focus:border-secondary") }}
+                      <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <label class="font-label-sm text-xs text-on-surface-variant">Type</label>
+                          {{ form.inter_group(class="w-full rounded-lg bg-surface-container-lowest p-space-xs font-body-sm text-on-surface shadow-sm border border-slate-200 outline-none focus:border-secondary") }}
+                        </div>
+                        <div>
+                          <label class="font-label-sm text-xs text-on-surface-variant">Marks</label>
+                          {{ form.inter_marks(class="w-full rounded-lg bg-surface-container-lowest p-space-xs font-body-sm text-on-surface shadow-sm border border-slate-200 outline-none focus:border-secondary") }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-space-sm pt-space-xs">
+                    <button type="button" data-back class="inline-flex items-center gap-1 rounded-lg px-space-md py-2.5 font-label-md text-on-surface-variant hover:bg-surface-container transition-colors">
+                      <span class="material-symbols-outlined text-sm">arrow_back</span>
+                      <span>Back</span>
+                    </button>
+                    <button type="button" data-next class="inline-flex items-center justify-center gap-space-xs rounded-xl bg-gold-amber px-space-xl py-3 font-label-lg text-navy-dark font-bold shadow-md transition-all hover:bg-gold-amber/90 active:scale-[0.98]">
+                      <span>Continue — Step 3 of 3</span>
+                      <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- STEP 3: Candidate Contact & Identity -->
+                <div data-step="3" class="hidden flex-col gap-space-md">
+                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <div>
+                      {{ form.first_name(class="form-input", placeholder="First Name *", **{"data-required": "1", "data-error": "Please enter your first name"}) }}
+                      {% for error in form.first_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div>
+                      {{ form.last_name(class="form-input", placeholder="Last Name *", **{"data-required": "1", "data-error": "Please enter your last name"}) }}
+                      {% for error in form.last_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                    </div>
+                  </div>
+                  <div>
+                    {{ form.phone(class="form-input", placeholder="Contact Number * (WhatsApp preferred, 03XX-XXXXXXX)", type="tel", **{"data-required": "1", "data-error": "Please enter your phone number"}) }}
+                    {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                  </div>
+                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <div>
+                      {{ form.guardian_name(class="form-input", placeholder="Guardian / Parent Name") }}
+                    </div>
+                    <div>
+                      {{ form.guardian_phone(class="form-input", placeholder="Guardian Contact Number", type="tel") }}
+                      {% for error in form.guardian_phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <div>
+                      {{ form.email(class="form-input", placeholder="Email Address", type="email") }}
+                      {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div>
+                      {{ form.city(class="form-input", placeholder="City") }}
+                    </div>
+                  </div>
+                  <div>
+                    {{ form.address(class="form-input", placeholder="Area / Locality (optional)") }}
+                  </div>
+                  <div>
+                    {{ form.message(class="form-input", rows="2", placeholder="Anything else you'd like to tell us?") }}
+                  </div>
+
+                  <div class="flex items-center justify-between gap-space-sm pt-space-xs">
+                    <button type="button" data-back class="inline-flex items-center gap-1 rounded-lg px-space-md py-2.5 font-label-md text-on-surface-variant hover:bg-surface-container transition-colors">
+                      <span class="material-symbols-outlined text-sm">arrow_back</span>
+                      <span>Back</span>
+                    </button>
+                    <button type="submit" class="inline-flex items-center justify-center gap-space-xs rounded-xl bg-gold-amber px-space-xl py-3.5 font-label-lg text-navy-dark font-bold shadow-lg transition-all hover:bg-gold-amber/90 active:scale-[0.98]">
+                      <span class="material-symbols-outlined text-lg">verified</span>
+                      <span>Submit Application</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Bottom Note -->
+            <div class="mt-space-md flex items-center justify-between rounded-xl bg-surface-container-low px-space-md py-space-xs text-xs text-on-surface-variant">
+              <span>Official MC College admissions portal — separate from our main site for faster processing.</span>
+              <span class="font-label-sm font-semibold text-secondary">Verified Session</span>
+            </div>
+          </section>
+
+          <!-- Bento Card 3: Accreditation & Legal Proof (5 Cols) -->
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-5 border border-slate-border/50" id="accreditation-proof">
+            <div class="flex flex-col gap-space-md">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-space-sm">
+                  {% if c.logo_mc %}
+                    <img alt="MC College of Medical &amp; Allied Health Sciences Crest" class="h-14 w-14 rounded-full bg-surface-container-low p-1 object-contain shadow-sm" src="{{ c.logo_mc }}"/>
+                  {% else %}
+                    <img alt="MC College of Medical &amp; Allied Health Sciences Crest" class="h-14 w-14 rounded-full bg-surface-container-low p-1 object-contain shadow-sm" src="https://lh3.googleusercontent.com/aida/AEtjO1UHS5kBpZTBGmF9tWoo_bhd8vieipVkda75Jz4ddvZCv6P3G1JgnnqEXLVJ9tGjEd1bk2tlIbJYZNOVBFdob8xupW6S-mp4u_a18wgb_Wh_wch0Rs-SpcseBAV2ctSpXjdYnfkcest1tFfug3fDsnpUxOKrk5CmzS_Fda_M7LoSlDk-Rl3lzxreij-Z4CwUMd7x0B5uvQl1-i6_ilGxqo7wexADfkJtiZYg5vciQFCWGr0lUGXH0P8qhRxk"/>
+                  {% endif %}
+                  <div>
+                    <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Charter &amp; Legal Recognition</span>
+                    <h2 class="font-headline-md text-headline-md text-navy-dark">Recognized &amp; Affiliated</h2>
+                  </div>
+                </div>
+                <span class="rounded-full bg-gold-light px-2.5 py-1 font-label-sm text-xs text-on-tertiary-container font-semibold">Govt. Verified</span>
+              </div>
+
+              <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                MC College of Medical &amp; Allied Health Sciences is affiliated with <strong class="text-navy-dark">Jinnah Sindh Medical University (JSMU)</strong> and the <strong class="text-navy-dark">Sindh Medical Faculty</strong>. That means your DPT or BSMT degree is awarded under a recognised public-sector university — a qualification employers and higher-study programs accept. You can confirm our affiliation directly on JSMU's own website below.
+              </p>
+
+              <div class="flex flex-col gap-space-sm pt-space-xs">
+                <a class="group flex items-center justify-between rounded-xl bg-surface-container-low p-space-md transition-all hover:bg-surface-container" href="{{ c.jsmu_dpt_url }}" rel="noopener noreferrer" target="_blank">
+                  <div class="flex items-center gap-space-sm">
+                    <span class="material-symbols-outlined rounded-lg bg-surface-container-lowest p-2 text-secondary">verified_user</span>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md text-navy-dark group-hover:text-secondary">Verify DPT on JSMU.edu.pk ↗</span>
+                      <span class="font-label-sm text-xs text-on-surface-variant">Doctor of Physical Therapy registry</span>
+                    </div>
+                  </div>
+                  <span class="material-symbols-outlined text-secondary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">open_in_new</span>
+                </a>
+                <a class="group flex items-center justify-between rounded-xl bg-surface-container-low p-space-md transition-all hover:bg-surface-container" href="{{ c.jsmu_bsmt_url }}" rel="noopener noreferrer" target="_blank">
+                  <div class="flex items-center gap-space-sm">
+                    <span class="material-symbols-outlined rounded-lg bg-surface-container-lowest p-2 text-secondary">domain_verification</span>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md text-navy-dark group-hover:text-secondary">Verify BSMT on JSMU.edu.pk ↗</span>
+                      <span class="font-label-sm text-xs text-on-surface-variant">Medical Technology registry</span>
+                    </div>
+                  </div>
+                  <span class="material-symbols-outlined text-secondary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">open_in_new</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="mt-space-md rounded-xl bg-navy-dark p-space-md text-on-primary">
+              <div class="flex items-center gap-space-sm">
+                <span class="material-symbols-outlined text-gold-amber text-2xl">workspace_premium</span>
+                <div class="flex flex-col">
+                  <span class="font-label-md text-xs text-gold-light uppercase tracking-wider font-bold">Higher Education Commission (HEC) Validated</span>
+                  <span class="font-body-sm text-xs text-surface-container-high">Full eligibility for government hospital house jobs and overseas credential conversions (MOH, DHA, HAAD, UK-HCPC).</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Bento Card 4: Principal's Video (Hidden when empty per CMS rule) -->
+          {% if show_video %}
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-5 border border-slate-border/50" id="principal-speech">
+            <div>
+              <div class="flex items-center justify-between pb-space-sm">
+                <div>
+                  <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Academic Leadership</span>
+                  <h2 class="font-headline-md text-headline-md text-navy-dark">Hear From Our Principal</h2>
+                </div>
+                <span class="inline-flex items-center gap-1 rounded-full bg-secondary-container/20 px-space-sm py-1 font-label-sm text-xs text-on-secondary-container font-semibold">
+                  <span class="material-symbols-outlined text-xs">volume_up</span> Official Address
+                </span>
+              </div>
+
+              <!-- Video Player Styled Container -->
+              <div class="group relative my-space-sm overflow-hidden rounded-xl bg-navy-dark aspect-video shadow-md">
+                <video class="h-full w-full object-cover" controls muted playsinline preload="none"
+                       data-lazy-video data-src="{{ c.principal_video }}"
+                       {% if c.principal_video_poster %}poster="{{ c.principal_video_poster }}"{% endif %}>
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+
+              <blockquote class="font-body-md text-body-md text-on-surface-variant italic leading-relaxed pt-space-xs">
+                “Quality physical-therapy and medical-technology education should be within reach. With support from the Mother &amp; Child Foundation, MC College keeps fees affordable so more students can train for a recognised healthcare career — without the cost being a barrier.”
+              </blockquote>
+            </div>
+
+            <div class="mt-space-md flex items-center justify-between border-t border-slate-border/50 pt-space-sm text-xs text-on-surface-variant">
+              <span class="font-label-md text-navy-dark font-semibold">Principal &amp; Dean of Academic Affairs</span>
+              <span class="font-label-sm text-secondary font-semibold">MC College Secretariat</span>
+            </div>
+          </section>
+          {% endif %}
+
+          <!-- Bento Card 5: Institutional Pillars (7 Cols or 12 Cols if video hidden) -->
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md {% if show_video %}lg:col-span-7{% else %}lg:col-span-12{% endif %} border border-slate-border/50">
+            <div>
+              <div class="flex items-center justify-between pb-space-md">
+                <div>
+                  <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Institutional Pillars</span>
+                  <h2 class="font-headline-md text-headline-md text-navy-dark">Why Choose MC College</h2>
+                </div>
+                <span class="rounded-full bg-secondary-container/30 px-space-sm py-1 font-label-sm text-xs text-on-secondary-container font-semibold">Core Advantages</span>
+              </div>
+
+              <div class="grid grid-cols-1 gap-space-md sm:grid-cols-2">
+                <!-- Pillar 1 -->
+                <div class="flex items-start gap-space-sm rounded-xl bg-surface-container-low p-space-md transition-transform hover:-translate-y-1">
+                  {% if c.why_1_img %}
+                    <img src="{{ c.why_1_img }}" alt="Affordable Fees" loading="lazy" class="mt-0.5 h-10 w-10 flex-none rounded-xl object-cover shadow-sm">
+                  {% else %}
+                    <span class="material-symbols-outlined rounded-xl bg-surface-container-lowest p-2.5 text-secondary shadow-sm">payments</span>
+                  {% endif %}
+                  <div class="flex flex-col">
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">Affordable Fees</h3>
+                    <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">Kept low so cost is never the reason you can't study.</p>
+                  </div>
+                </div>
+
+                <!-- Pillar 2 -->
+                <div class="flex items-start gap-space-sm rounded-xl bg-surface-container-low p-space-md transition-transform hover:-translate-y-1">
+                  {% if c.why_2_img %}
+                    <img src="{{ c.why_2_img }}" alt="Foundation Support" loading="lazy" class="mt-0.5 h-10 w-10 flex-none rounded-xl object-cover shadow-sm">
+                  {% else %}
+                    <span class="material-symbols-outlined rounded-xl bg-surface-container-lowest p-2.5 text-secondary shadow-sm">volunteer_activism</span>
+                  {% endif %}
+                  <div class="flex flex-col">
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">Mother &amp; Child Foundation Support</h3>
+                    <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">Financial support helps deserving students continue their education.</p>
+                  </div>
+                </div>
+
+                <!-- Pillar 3 -->
+                <div class="flex items-start gap-space-sm rounded-xl bg-surface-container-low p-space-md transition-transform hover:-translate-y-1">
+                  {% if c.why_3_img %}
+                    <img src="{{ c.why_3_img }}" alt="HEC-Recognized Degree" loading="lazy" class="mt-0.5 h-10 w-10 flex-none rounded-xl object-cover shadow-sm">
+                  {% else %}
+                    <span class="material-symbols-outlined rounded-xl bg-surface-container-lowest p-2.5 text-secondary shadow-sm">school</span>
+                  {% endif %}
+                  <div class="flex flex-col">
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">HEC-Recognized Degree</h3>
+                    <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">Degrees awarded under JSMU — recognised and accepted.</p>
+                  </div>
+                </div>
+
+                <!-- Pillar 4 -->
+                <div class="flex items-start gap-space-sm rounded-xl bg-surface-container-low p-space-md transition-transform hover:-translate-y-1">
+                  {% if c.why_4_img %}
+                    <img src="{{ c.why_4_img }}" alt="Faculty &amp; Facilities" loading="lazy" class="mt-0.5 h-10 w-10 flex-none rounded-xl object-cover shadow-sm">
+                  {% else %}
+                    <span class="material-symbols-outlined rounded-xl bg-surface-container-lowest p-2.5 text-secondary shadow-sm">biotech</span>
+                  {% endif %}
+                  <div class="flex flex-col">
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">Experienced Faculty &amp; Facilities</h3>
+                    <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">Learn from practising professionals in equipped labs.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-space-lg flex flex-wrap items-center justify-between gap-space-sm rounded-xl bg-surface-container px-space-md py-space-sm text-xs text-on-surface-variant">
+              <span class="flex items-center gap-1 font-label-md text-navy-dark font-semibold">
+                <span class="material-symbols-outlined text-sm text-teal-accent">medical_services</span>
+                Affiliated Teaching Hospital Rotations: Abbasi Shaheed &amp; Sindh Govt. Hospitals
+              </span>
+              <span class="font-label-sm text-secondary font-semibold">100% Practical Exposure</span>
+            </div>
+          </section>
+
+          <!-- Bento Card 6: Academic Programs Catalog (Full 12 Cols) -->
+          <section class="rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-12 border border-slate-border/50" id="programs-catalog">
+            <div class="flex flex-wrap items-end justify-between gap-space-sm pb-space-lg">
+              <div>
+                <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Degree Programs</span>
+                <h2 class="font-headline-lg text-headline-lg text-navy-dark">Our Programs</h2>
+                <p class="font-body-md text-body-md text-on-surface-variant">Accredited by Jinnah Sindh Medical University for upcoming clinical sessions</p>
+              </div>
+              <a class="inline-flex items-center gap-1 rounded-xl bg-navy-dark px-space-md py-2.5 font-label-md text-on-primary transition-all hover:bg-navy-dark/90" href="#application-bento">
+                <span>Apply for 2026 Intake</span>
+                <span class="material-symbols-outlined text-base">arrow_forward</span>
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 gap-space-lg md:grid-cols-3">
+              <!-- Program 1: DPT -->
+              <div class="group flex flex-col justify-between overflow-hidden rounded-xl bg-surface-container-low transition-all hover:-translate-y-1 hover:shadow-md border border-slate-border/50">
+                <div class="relative h-48 w-full overflow-hidden">
+                  <img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                       alt="Doctor of Physical Therapy" loading="lazy"
+                       src="{{ c.program_dpt_img }}"/>
+                  <div class="absolute top-3 left-3 rounded-md bg-navy-dark/80 px-2.5 py-1 font-label-sm text-xs text-gold-amber backdrop-blur-sm">
+                    5 Years Degree
+                  </div>
+                  <div class="absolute top-3 right-3 rounded-md bg-secondary px-2 py-0.5 font-label-sm text-xs text-on-secondary">
+                    JSMU Charter
+                  </div>
+                </div>
+                <div class="flex flex-1 flex-col justify-between p-space-md">
+                  <div>
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">Doctor of Physical Therapy</h3>
+                    <span class="font-label-sm text-xs text-secondary font-semibold uppercase tracking-wider">5 years</span>
+                    <p class="mt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+                      A professional degree training you to assess and treat movement and rehabilitation needs across clinical settings.
+                    </p>
+                    <div class="mt-space-sm flex flex-wrap gap-1">
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Neuromuscular Rehab</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Orthopedics</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Pediatric Physical Therapy</span>
+                    </div>
+                  </div>
+                  <div class="mt-space-md pt-space-xs">
+                    <button type="button" class="apply-cta inline-flex w-full items-center justify-center gap-1 rounded-xl bg-gold-amber px-space-md py-2.5 font-label-md text-navy-dark font-bold transition-all hover:bg-gold-amber/90"
+                            data-program="DPT">
+                      <span>Apply Now</span>
+                      <span class="material-symbols-outlined text-base">arrow_right_alt</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Program 2: BSMT - CLS -->
+              <div class="group flex flex-col justify-between overflow-hidden rounded-xl bg-surface-container-low transition-all hover:-translate-y-1 hover:shadow-md border border-slate-border/50">
+                <div class="relative h-48 w-full overflow-hidden">
+                  <img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                       alt="BSMT — Clinical Laboratory Sciences" loading="lazy"
+                       src="{{ c.program_bsmt_cls_img }}"/>
+                  <div class="absolute top-3 left-3 rounded-md bg-navy-dark/80 px-2.5 py-1 font-label-sm text-xs text-gold-amber backdrop-blur-sm">
+                    4 Years Degree
+                  </div>
+                  <div class="absolute top-3 right-3 rounded-md bg-secondary px-2 py-0.5 font-label-sm text-xs text-on-secondary">
+                    Sindh Medical Faculty
+                  </div>
+                </div>
+                <div class="flex flex-1 flex-col justify-between p-space-md">
+                  <div>
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">BSMT — Clinical Laboratory Sciences</h3>
+                    <span class="font-label-sm text-xs text-secondary font-semibold uppercase tracking-wider">4 years</span>
+                    <p class="mt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+                      Diagnostic laboratory science: pathology, microbiology, and clinical testing that guides patient care.
+                    </p>
+                    <div class="mt-space-sm flex flex-wrap gap-1">
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Clinical Pathology</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Hematology</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Medical Microbiology</span>
+                    </div>
+                  </div>
+                  <div class="mt-space-md pt-space-xs">
+                    <button type="button" class="apply-cta inline-flex w-full items-center justify-center gap-1 rounded-xl bg-gold-amber px-space-md py-2.5 font-label-md text-navy-dark font-bold transition-all hover:bg-gold-amber/90"
+                            data-program="BSMT" data-spec="Clinical Laboratory Sciences">
+                      <span>Apply Now</span>
+                      <span class="material-symbols-outlined text-base">arrow_right_alt</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Program 3: BSMT - Radiological Imaging -->
+              <div class="group flex flex-col justify-between overflow-hidden rounded-xl bg-surface-container-low transition-all hover:-translate-y-1 hover:shadow-md border border-slate-border/50">
+                <div class="relative h-48 w-full overflow-hidden">
+                  <img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                       alt="BSMT — Radiological Imaging" loading="lazy"
+                       src="{{ c.program_bsmt_ri_img }}"/>
+                  <div class="absolute top-3 left-3 rounded-md bg-navy-dark/80 px-2.5 py-1 font-label-sm text-xs text-gold-amber backdrop-blur-sm">
+                    4 Years Degree
+                  </div>
+                  <div class="absolute top-3 right-3 rounded-md bg-secondary px-2 py-0.5 font-label-sm text-xs text-on-secondary">
+                    JSMU Affiliated
+                  </div>
+                </div>
+                <div class="flex flex-1 flex-col justify-between p-space-md">
+                  <div>
+                    <h3 class="font-headline-sm text-headline-sm text-navy-dark">BSMT — Radiological Imaging</h3>
+                    <span class="font-label-sm text-xs text-secondary font-semibold uppercase tracking-wider">4 years</span>
+                    <p class="mt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+                      Medical imaging technology: X-ray, CT, MRI, and ultrasound used to diagnose and monitor patients.
+                    </p>
+                    <div class="mt-space-sm flex flex-wrap gap-1">
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">CT Scan Technology</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">MRI Systems</span>
+                      <span class="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-xs text-on-surface-variant">Ultrasound Sonography</span>
+                    </div>
+                  </div>
+                  <div class="mt-space-md pt-space-xs">
+                    <button type="button" class="apply-cta inline-flex w-full items-center justify-center gap-1 rounded-xl bg-gold-amber px-space-md py-2.5 font-label-md text-navy-dark font-bold transition-all hover:bg-gold-amber/90"
+                            data-program="BSMT" data-spec="Radiological Imaging">
+                      <span>Apply Now</span>
+                      <span class="material-symbols-outlined text-base">arrow_right_alt</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {# Bento Card 7: Campus Gallery (Hidden when empty per CMS rule) #}
+          {% if show_gallery %}
+          <section class="rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-12 border border-slate-border/50" id="campus-gallery">
+            <div class="flex items-center justify-between pb-space-md border-b border-slate-border/50">
+              <div>
+                <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Campus Life</span>
+                <h2 class="font-headline-md text-headline-md text-navy-dark">Campus Gallery</h2>
+              </div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-secondary-container/20 px-space-sm py-1 font-label-sm text-xs text-on-secondary-container font-semibold">
+                <span class="material-symbols-outlined text-xs">photo_library</span> Facilities &amp; Labs
+              </span>
+            </div>
+            <div class="mt-space-md grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-space-md">
+              {% for item in gallery %}
+                <figure class="group overflow-hidden rounded-xl border border-slate-border/50 bg-surface-container-low transition-all hover:shadow-md">
+                  {% if item.media_type == 'video' %}
+                    <video src="{{ url_for('static', filename=item.file_path) }}"
+                           {% if item.poster_path %}poster="{{ url_for('static', filename=item.poster_path) }}"{% endif %}
+                           controls muted playsinline preload="none" class="h-40 w-full bg-navy-dark object-cover"></video>
+                  {% else %}
+                    <img src="{{ url_for('static', filename=item.file_path) }}"
+                         alt="{{ item.caption or 'MC College campus' }}" loading="lazy" class="h-40 w-full object-cover transition-transform duration-500 group-hover:scale-105">
+                  {% endif %}
+                  {% if item.caption %}
+                    <figcaption class="p-space-xs font-body-sm text-xs text-on-surface-variant truncate">{{ item.caption }}</figcaption>
+                  {% endif %}
+                </figure>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+
+          <!-- Bento Card 8: FAQ Section (7 Cols) -->
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-7 border border-slate-border/50" id="faq-section">
+            <div>
+              <div class="flex items-center justify-between pb-space-md">
+                <div>
+                  <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Frequently Asked Questions</span>
+                  <h2 class="font-headline-md text-headline-md text-navy-dark">Admissions &amp; Academic Inquiries</h2>
+                </div>
+                <span class="material-symbols-outlined text-secondary">quiz</span>
+              </div>
+
+              <!-- Accordion Items loaded from CMS / Defaults -->
+              <div class="flex flex-col gap-space-xs" id="accordion-root">
+                {% if faqs %}
+                  {% for item in faqs %}
+                    <details class="group rounded-xl bg-surface-container-low transition-all" {% if loop.first %}open=""{% endif %}>
+                      <summary class="flex cursor-pointer items-center justify-between p-space-md font-label-lg text-label-lg text-navy-dark list-none select-none">
+                        <span>{{ item.question }}</span>
+                        <span class="material-symbols-outlined text-secondary transition-transform group-open:rotate-180">expand_more</span>
+                      </summary>
+                      <div class="px-space-md pb-space-md pt-1 font-body-sm text-body-sm text-on-surface-variant border-t border-slate-border/50">
+                        {{ item.answer }}
+                      </div>
+                    </details>
+                  {% endfor %}
+                {% else %}
+                  {% set default_faqs = [
+                    ("Who is eligible to apply?", "For DPT and BSMT you generally need Intermediate (Pre-Medical preferred). Submit your marks in the form and our team will confirm your eligibility."),
+                    ("How affordable is it really?", "Fees are kept low, and eligible students can receive support through the Mother & Child Foundation. Our team will walk you through the exact fee structure."),
+                    ("Is the degree HEC recognized?", "Yes. Programs are offered under affiliation with Jinnah Sindh Medical University (JSMU); you can verify this on JSMU's official site linked above."),
+                    ("How long are the programs?", "DPT is 5 years. BSMT (both specializations) is 4 years."),
+                    ("Is financial support available?", "Yes — support through the Mother & Child Foundation is available for deserving students. Ask our team about how to qualify.")
+                  ] %}
+                  {% for q, a in default_faqs %}
+                    <details class="group rounded-xl bg-surface-container-low transition-all" {% if loop.first %}open=""{% endif %}>
+                      <summary class="flex cursor-pointer items-center justify-between p-space-md font-label-lg text-label-lg text-navy-dark list-none select-none">
+                        <span>{{ q }}</span>
+                        <span class="material-symbols-outlined text-secondary transition-transform group-open:rotate-180">expand_more</span>
+                      </summary>
+                      <div class="px-space-md pb-space-md pt-1 font-body-sm text-body-sm text-on-surface-variant border-t border-slate-border/50">
+                        {{ a }}
+                      </div>
+                    </details>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="mt-space-md flex items-center justify-between rounded-xl bg-surface-container px-space-md py-space-xs text-xs text-on-surface-variant">
+              <span>Need personalized counseling?</span>
+              <a class="font-label-sm text-secondary hover:underline font-bold" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">Speak directly with Admissions Officer →</a>
+            </div>
+          </section>
+
+          <!-- Bento Card 9: Direct Contact, Campus Location & Helpdesk (5 Cols) -->
+          <section class="flex flex-col justify-between rounded-2xl bg-slate-card p-space-lg shadow-sm transition-all hover:shadow-md lg:col-span-5 border border-slate-border/50" id="campus-helpdesk">
+            <div class="flex flex-col gap-space-md">
+              <div>
+                <span class="font-label-sm text-xs uppercase tracking-wider text-secondary font-bold">Campus Secretariat</span>
+                <h2 class="font-headline-md text-headline-md text-navy-dark">Admissions Helpdesk</h2>
+              </div>
+
+              <!-- Campus Map Card -->
+              <div class="relative h-44 w-full overflow-hidden rounded-xl bg-cover bg-center shadow-inner" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAWHtA5OpJlYEk9dPKcx1Xllell-iLXU5-g2cSdDM20LSBN63yX1roSOeruPRkG7Fa-ByQKl0GuvG_VdjOGHYkWHfDEVENzHFDnMAFRS-b7wP64BL-B6qoamFcy8lZk-qoW_fMK7zOfzWAVIfnTOGnbxLup7Pf2d20zfAXfkZladuzy4czH45CbYTDKv2boG5_geAD4_1SuQuqloZL5oI-CiF0nJH40EuHLZxSpxttgPS8Db0Ebk0n_aw')">
+                <div class="absolute inset-0 bg-navy-dark/40"></div>
+                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-lg bg-surface-container-lowest/90 p-2 text-xs text-navy-dark backdrop-blur-md">
+                  <div class="flex items-center gap-1.5 truncate">
+                    <span class="material-symbols-outlined text-sm text-error">location_on</span>
+                    <span class="font-label-sm truncate">North Nazimabad Campus, Karachi</span>
+                  </div>
+                  <span class="rounded bg-secondary/10 px-1.5 py-0.5 font-label-sm text-[10px] text-secondary font-bold">Open 9AM-4PM</span>
+                </div>
+              </div>
+
+              <!-- Official Contact List -->
+              <div class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+                <a class="group flex items-center gap-space-sm rounded-lg p-space-xs hover:bg-surface-container-low transition-colors" href="tel:02136684658">
+                  <span class="material-symbols-outlined rounded-md bg-surface-container-low p-2 text-secondary group-hover:bg-surface-container">call</span>
+                  <div class="flex flex-col">
+                    <span class="font-label-sm text-xs text-on-surface-variant">Telephone PABX</span>
+                    <span class="font-headline-sm text-sm text-navy-dark group-hover:text-secondary">021-36684658</span>
+                  </div>
+                </a>
+                <a class="group flex items-center gap-space-sm rounded-lg p-space-xs hover:bg-surface-container-low transition-colors" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+                  <span class="material-symbols-outlined rounded-md bg-whatsapp-green/10 p-2 text-whatsapp-green group-hover:bg-whatsapp-green/20">chat</span>
+                  <div class="flex flex-col">
+                    <span class="font-label-sm text-xs text-on-surface-variant">WhatsApp Direct</span>
+                    <span class="font-headline-sm text-sm text-navy-dark group-hover:text-whatsapp-green">WhatsApp: +92 331 2004658</span>
+                  </div>
+                </a>
+                <a class="group flex items-center gap-space-sm rounded-lg p-space-xs hover:bg-surface-container-low transition-colors" href="mailto:admission@mccollege.edu.pk">
+                  <span class="material-symbols-outlined rounded-md bg-surface-container-low p-2 text-secondary group-hover:bg-surface-container">mail</span>
+                  <div class="flex flex-col">
+                    <span class="font-label-sm text-xs text-on-surface-variant">Email Secretariat</span>
+                    <span class="font-headline-sm text-sm text-navy-dark group-hover:text-secondary">admission@mccollege.edu.pk</span>
+                  </div>
+                </a>
+                <div class="flex items-start gap-space-sm rounded-lg p-space-xs">
+                  <span class="material-symbols-outlined rounded-md bg-surface-container-low p-2 text-secondary">pin_drop</span>
+                  <div class="flex flex-col">
+                    <span class="font-label-sm text-xs text-on-surface-variant">Campus Location</span>
+                    <span class="font-body-sm text-xs text-navy-dark">Main Campus: C 177/2, Rameez Raja Road, Block A, North Nazimabad off KDA Chowrangi near Rose Garden, Karachi</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-space-md pt-space-xs">
+              <a class="inline-flex w-full items-center justify-center gap-space-xs rounded-xl bg-whatsapp-green px-space-md py-3 font-label-md text-on-primary font-bold shadow-md transition-all hover:opacity-95 active:scale-[0.98]" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+                <span class="material-symbols-outlined text-lg">chat</span>
+                <span>Ask via WhatsApp Immediately</span>
+              </a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky Bottom Action Bar -->
+    <aside class="sticky bottom-0 z-50 w-full bg-gold-amber text-navy-dark shadow-2xl transition-all border-t-2 border-navy-dark/20">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-space-sm px-gutter py-2.5">
+        <div class="flex items-center gap-space-sm">
+          <div class="h-9 w-9 rounded-full bg-navy-dark flex items-center justify-center text-gold-amber font-bold text-xs shadow">
+            <span class="material-symbols-outlined text-base">local_fire_department</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-sm text-navy-dark leading-tight font-bold">Admissions 2026–27 Open • Limited Foundation Scholarships</span>
+            <span class="font-label-sm text-xs text-navy-dark/90 font-medium">DPT (5 Yrs) &amp; BSMT (4 Yrs) under JSMU Karachi</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-space-sm flex-wrap">
+          <a class="inline-flex items-center gap-1 rounded-lg bg-navy-dark px-space-md py-2 font-label-md text-xs text-on-primary shadow-md hover:bg-navy-dark/90 transition-transform active:scale-95" href="#quick-lead-form">
+            <span class="material-symbols-outlined text-sm">bolt</span>
+            <span>Apply in 60 Seconds</span>
+          </a>
+          <a class="inline-flex items-center gap-1 rounded-lg bg-whatsapp-green px-space-md py-2 font-label-md text-xs text-on-primary font-bold shadow-md hover:opacity-95 transition-transform active:scale-95" href="{{ WHATSAPP_URL }}" rel="noopener" target="_blank">
+            <span class="material-symbols-outlined text-sm">chat</span>
+            <span>Get Fee Structure on WhatsApp</span>
+          </a>
+          <a class="hidden sm:inline-flex items-center gap-1 rounded-lg bg-surface-container-lowest px-space-sm py-2 font-label-md text-xs text-navy-dark shadow-sm hover:bg-surface-bright transition-colors" href="tel:02136684658">
+            <span class="material-symbols-outlined text-xs">call</span>
+            <span>021-36684658</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sticky "Continue Application" bar -->
+    <button id="continueBar" type="button"
+            class="fixed inset-x-0 bottom-12 z-40 hidden bg-[#ffc107] px-4 py-3 text-center font-bold text-[#1a365d] shadow-[0_-2px_8px_rgba(0,0,0,0.15)]">
+      Continue Application — <span id="continueStep">Step 2 of 3</span>
+    </button>
+
+    <!-- Floating WhatsApp Bubble -->
+    <a id="whatsappBubble" href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener"
+       aria-label="Chat with us on WhatsApp"
+       class="fixed bottom-24 right-4 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25d366] shadow-lg transition hover:scale-105">
+      <svg class="h-8 w-8 fill-white" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/>
+      </svg>
+    </a>
+
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="w-full bg-surface-container-low border-t border-slate-border/50">
+  <div class="max-w-7xl mx-auto px-gutter py-space-xl">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-space-xl pb-space-lg">
+      <div class="md:col-span-1 flex flex-col gap-space-sm">
+        <div class="flex items-center gap-space-sm">
+          {% if c.logo_mc %}
+            <img alt="MC College of Medical &amp; Allied Health Sciences" class="h-8 w-auto object-contain" src="{{ c.logo_mc }}"/>
+          {% else %}
+            <img alt="MC College of Medical &amp; Allied Health Sciences" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UHS5kBpZTBGmF9tWoo_bhd8vieipVkda75Jz4ddvZCv6P3G1JgnnqEXLVJ9tGjEd1bk2tlIbJYZNOVBFdob8xupW6S-mp4u_a18wgb_Wh_wch0Rs-SpcseBAV2ctSpXjdYnfkcest1tFfug3fDsnpUxOKrk5CmzS_Fda_M7LoSlDk-Rl3lzxreij-Z4CwUMd7x0B5uvQl1-i6_ilGxqo7wexADfkJtiZYg5vciQFCWGr0lUGXH0P8qhRxk"/>
+          {% endif %}
+          <span class="font-headline-sm text-headline-sm text-navy-dark">MC College</span>
+        </div>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Premier academic medical institution dedicated to excellence in clinical training, allied healthcare leadership, and professional patient care services in Sindh.</p>
+        <div class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-lg bg-gold-light text-on-tertiary-container font-label-sm text-label-sm w-fit">
+          <span class="material-symbols-outlined text-xs">verified</span>
+          <span>Affiliated with JSMU Karachi</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-space-sm">
+        <span class="font-label-lg text-label-lg text-navy-dark font-bold">Academic Programs</span>
+        <ul class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+          <li><a class="hover:text-primary transition-colors" href="#programs-catalog">Doctor of Physical Therapy (DPT)</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#programs-catalog">BS Medical Technology (BSMT)</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#programs-catalog">BS Radiology &amp; Imaging</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#programs-catalog">Clinical Laboratory Sciences</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#programs-catalog">Sindh Medical Faculty Affiliation</a></li>
         </ul>
       </div>
 
-      {# ---------------- Multi-step form ---------------- #}
-      <form id="admissionForm" method="POST" action="{{ url_for('public.submit_admission') }}"
-            class="mx-auto mt-6 max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl lg:mt-0 lg:max-w-none">
-      {{ form.hidden_tag() }}
-
-      {# Progress indicator #}
-      <p id="stepLabel" class="text-xs font-semibold uppercase tracking-wide text-[#1a365d]">Step 1 of 3</p>
-      <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-        <div id="progressBar" class="h-full w-1/3 rounded-full bg-[#ffc107] transition-all duration-300"></div>
+      <div class="flex flex-col gap-space-sm">
+        <span class="font-label-lg text-label-lg text-navy-dark font-bold">Admissions &amp; Governance</span>
+        <ul class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+          <li><a class="hover:text-primary transition-colors" href="#comparison-advantage">Eligibility Criteria 2026-27</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#comparison-advantage">Fee Structure &amp; Installments</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#accreditation-proof">HEC &amp; JSMU Accreditation</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#comparison-advantage">Clinical Affiliated Hospitals</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#campus-helpdesk">Campus Secretariat</a></li>
+        </ul>
       </div>
 
-      {# ---------- STEP 1: program selection ---------- #}
-      <div data-step="1" class="mt-5">
-        <p class="text-base font-semibold text-[#333333]">Which program are you applying for?</p>
-        <div class="mt-3 grid grid-cols-2 gap-3">
-          <button type="button" data-program="DPT"
-                  class="program-card rounded-xl border-2 border-slate-200 bg-white px-4 py-5 text-center font-bold text-[#1a365d] transition hover:border-[#1a365d]">
-            DPT
-          </button>
-          <button type="button" data-program="BSMT"
-                  class="program-card rounded-xl border-2 border-slate-200 bg-white px-4 py-5 text-center font-bold text-[#1a365d] transition hover:border-[#1a365d]">
-            BSMT
-          </button>
-        </div>
-
-        {# BSMT sub-step — hidden until BSMT is chosen. Still Step 1. #}
-        <div id="bsmtBranch" class="mt-4 hidden">
-          <p class="text-base font-semibold text-[#333333]">Which BSMT specialization?</p>
-          <div class="mt-3 grid gap-3">
-            <button type="button" data-spec="Clinical Laboratory Sciences"
-                    class="spec-card rounded-xl border-2 border-slate-200 bg-white px-4 py-4 text-center font-semibold text-[#1a365d] transition hover:border-[#1a365d]">
-              Clinical Laboratory Sciences
-            </button>
-            <button type="button" data-spec="Radiological Imaging"
-                    class="spec-card rounded-xl border-2 border-slate-200 bg-white px-4 py-4 text-center font-semibold text-[#1a365d] transition hover:border-[#1a365d]">
-              Radiological Imaging
-            </button>
+      <div class="flex flex-col gap-space-sm">
+        <span class="font-label-lg text-label-lg text-navy-dark font-bold">Admissions Secretariat</span>
+        <div class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+          <div class="flex items-start gap-space-xs">
+            <span class="material-symbols-outlined text-base text-secondary mt-0.5">location_on</span>
+            <span>C 177/2, Rameez Raja Road, Block A, North Nazimabad, Karachi</span>
           </div>
-        </div>
-
-        {# Hidden real fields bound by the tap-cards above. #}
-        <div class="hidden">
-          {{ form.course() }}
-          {{ form.specialization() }}
-        </div>
-        {% for error in form.course.errors %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endfor %}
-        {% for error in form.specialization.errors %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endfor %}
-
-        {# ---- B. Highest-value trust placement: right below the choice ---- #}
-        {# Credibility-card logos are a dedicated trust moment, so they are set
-           visibly larger than the top bar: 58px mobile / 76px desktop, by
-           exact height only (divider scales with them). #}
-        <div class="mt-6 rounded-xl bg-[#f8f9fa] p-4">
-          {{ logo_pair(height="h-[58px] sm:h-[76px]", divider="h-[46px] sm:h-[60px]") }}
-          <p class="mt-3 text-center text-xs text-[#333333]">
-            MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
-          </p>
-          {# Domain-trust note (addendum 2 §4): calm, factual, not a question. #}
-          <p class="mt-1.5 text-center text-[11px] text-slate-500">
-            Official MC College admissions portal — separate from our main site for faster processing.
-          </p>
+          <div class="flex items-center gap-space-xs">
+            <span class="material-symbols-outlined text-base text-secondary">call</span>
+            <a href="tel:02136684658" class="hover:text-primary">PABX: 021-36684658</a>
+          </div>
+          <div class="flex items-center gap-space-xs">
+            <span class="material-symbols-outlined text-base text-whatsapp-green">chat</span>
+            <a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener" class="hover:text-primary">WhatsApp: +92 331 2004658</a>
+          </div>
+          <div class="flex items-center gap-space-xs">
+            <span class="material-symbols-outlined text-base text-secondary">mail</span>
+            <a href="mailto:admission@mccollege.edu.pk" class="hover:text-primary">admission@mccollege.edu.pk</a>
+          </div>
         </div>
       </div>
+    </div>
 
-      {# ---------- STEP 2: academic qualifications ---------- #}
-      {# All fields optional at lead capture — no asterisks here (they mark
-         required fields only, kept consistent with Step 3). Boards + marks are
-         dropdowns to keep lead data clean; Year fields intentionally removed. #}
-      <div data-step="2" class="mt-5 hidden">
-        <p class="text-sm font-bold text-[#1a365d]">Matriculation</p>
-        <div class="mt-2 grid gap-3">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-[#333333]">Matric Board</span>
-            {{ form.matric_board(class="form-input") }}
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-[#333333]">Matric Marks</span>
-            {{ form.matric_marks(class="form-input") }}
-          </label>
-        </div>
-
-        <p class="mt-4 text-sm font-bold text-[#1a365d]">Intermediate</p>
-        <div class="mt-2 grid gap-3">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Board</span>
-            {{ form.inter_board(class="form-input") }}
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Marks</span>
-            {{ form.inter_marks(class="form-input") }}
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-[#333333]">Intermediate Type</span>
-            {{ form.inter_group(class="form-input") }}
-          </label>
-        </div>
-
-        <div class="mt-5 flex gap-3">
-          <button type="button" data-back class="w-1/3 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-[#333333] transition hover:bg-slate-50">Back</button>
-          <button type="button" data-next class="w-2/3 rounded-xl bg-[#ffc107] px-4 py-3 font-bold text-[#1a365d] transition hover:brightness-95">Continue</button>
-        </div>
+    <div class="pt-space-md border-t border-slate-border/50 flex flex-col md:flex-row items-center justify-between gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+      <p>&copy; {{ current_year }} MC College of Medical &amp; Allied Health Sciences. Affiliated with Jinnah Sindh Medical University (JSMU).</p>
+      <div class="flex items-center gap-space-md">
+        <a class="hover:text-primary transition-colors underline" href="{{ url_for('public.privacy') }}">Privacy Policy</a>
       </div>
-
-      {# ---------- STEP 3: personal / contact ---------- #}
-      {# Required fields are marked with * and validated inline (see script):
-         an empty required field blocks submit and shows a message directly
-         under the field, never a popup/alert. #}
-      <div data-step="3" class="mt-5 hidden">
-        <div class="grid gap-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              {{ form.first_name(class="form-input", placeholder="First Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
-              {% for error in form.first_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-            </div>
-            <div>
-              {{ form.last_name(class="form-input", placeholder="Last Name *", **{"data-required": "1", "data-error": "This field is required"}) }}
-              {% for error in form.last_name.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-            </div>
-          </div>
-          <div>
-            {{ form.phone(class="form-input", placeholder="Contact Number * (WhatsApp preferred, 03XX-XXXXXXX)", type="tel", **{"data-required": "1", "data-error": "This field is required"}) }}
-            {% for error in form.phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-          </div>
-          <div>
-            {{ form.guardian_name(class="form-input", placeholder="Guardian / Parent Name") }}
-          </div>
-          <div>
-            {{ form.guardian_phone(class="form-input", placeholder="Guardian / Parent Contact Number (03XX-XXXXXXX)", type="tel") }}
-            {% for error in form.guardian_phone.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-          </div>
-          <div>
-            {{ form.email(class="form-input", placeholder="Email", type="email") }}
-            {% for error in form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-          </div>
-          <div>
-            {{ form.city(class="form-input", placeholder="City") }}
-          </div>
-          <div>
-            {{ form.address(class="form-input", placeholder="Area / Locality (optional)") }}
-          </div>
-          {{ form.message(class="form-input", rows="2", placeholder="Anything else you'd like to tell us?") }}
-        </div>
-
-        <div class="mt-5 flex gap-3">
-          <button type="button" data-back class="w-1/3 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-[#333333] transition hover:bg-slate-50">Back</button>
-          <button type="submit" class="w-2/3 rounded-xl bg-[#ffc107] px-4 py-3 font-bold text-[#1a365d] transition hover:brightness-95">Submit Application</button>
-        </div>
-      </div>
-    </form>
-
-    </div>{# /lg:grid #}
-  </div>
-</section>
-
-{# ============================ Principal's Video ============================ #}
-{# Hidden entirely when no video is uploaded (addendum §3 hide-when-empty). #}
-{% if show_video %}
-<section class="bg-white px-4 py-10">
-  <div class="mx-auto max-w-md">
-    <h2 class="text-center text-xl font-bold text-[#1a365d]">Hear From Our Principal</h2>
-    <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-black">
-      {# Self-hosted (no YouTube). Lazy-loaded: preload="none" + data-src swapped
-         in by IntersectionObserver so the video never competes with the form
-         for load priority. Muted autoplay with captions once in view. #}
-      <video class="h-auto w-full" controls muted playsinline preload="none"
-             data-lazy-video data-src="{{ c.principal_video }}"
-             {% if c.principal_video_poster %}poster="{{ c.principal_video_poster }}"{% endif %}>
-        Your browser does not support the video tag.
-      </video>
     </div>
-    <p class="mt-4 text-sm leading-relaxed text-[#333333]">
-      Quality physical-therapy and medical-technology education should be within reach.
-      With support from the Mother &amp; Child Foundation, MC College keeps fees affordable
-      so more students can train for a recognised healthcare career — without the cost
-      being a barrier.
-    </p>
-  </div>
-</section>
-{% endif %}
-
-{# ============================ C. Recognition / Affiliation Proof ============================ #}
-<section class="bg-[#f8f9fa] px-4 py-10">
-  <div class="mx-auto max-w-lg text-center">
-    <h2 class="text-xl font-bold text-[#1a365d]">Recognized &amp; Affiliated</h2>
-
-    {# Bare logo row removed here (addendum 3 §4): it was a near-duplicate of the
-       credibility-card logos shown seconds earlier in the hero. The recognition
-       proof now leads with real explanatory text + the two JSMU verification
-       links below — the logos live in the trust bar and credibility card. #}
-
-    <p class="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#333333]">
-      MC College of Medical &amp; Allied Health Sciences is affiliated with
-      <strong>Jinnah Sindh Medical University (JSMU)</strong> and the
-      <strong>Sindh Medical Faculty</strong>. That means your DPT or BSMT degree is
-      awarded under a recognised public-sector university — a qualification employers
-      and higher-study programs accept. You can confirm our affiliation directly on
-      JSMU's own website below.
-    </p>
-
-    <div class="mt-5 grid gap-3 sm:grid-cols-2">
-      <a href="{{ c.jsmu_dpt_url }}" target="_blank" rel="noopener noreferrer"
-         class="rounded-xl border border-[#1a365d] px-4 py-3 text-sm font-semibold text-[#1a365d] transition hover:bg-[#1a365d] hover:text-white">
-        Verify DPT on JSMU.edu.pk ↗
-      </a>
-      <a href="{{ c.jsmu_bsmt_url }}" target="_blank" rel="noopener noreferrer"
-         class="rounded-xl border border-[#1a365d] px-4 py-3 text-sm font-semibold text-[#1a365d] transition hover:bg-[#1a365d] hover:text-white">
-        Verify BSMT on JSMU.edu.pk ↗
-      </a>
-    </div>
-  </div>
-</section>
-
-{# ============================ Programs ============================ #}
-<section class="bg-white px-4 py-10">
-  <div class="mx-auto max-w-md">
-    <h2 class="text-center text-xl font-bold text-[#1a365d]">Our Programs</h2>
-    <div class="mt-5 grid gap-4">
-      {% set programs = [
-        ("DPT", "", "Doctor of Physical Therapy", "5 years", "A professional degree training you to assess and treat movement and rehabilitation needs across clinical settings.", c.program_dpt_img),
-        ("BSMT", "Clinical Laboratory Sciences", "BSMT — Clinical Laboratory Sciences", "4 years", "Diagnostic laboratory science: pathology, microbiology, and clinical testing that guides patient care.", c.program_bsmt_cls_img),
-        ("BSMT", "Radiological Imaging", "BSMT — Radiological Imaging", "4 years", "Medical imaging technology: X-ray, CT, MRI, and ultrasound used to diagnose and monitor patients.", c.program_bsmt_ri_img)
-      ] %}
-      {% for prog, spec, title, duration, desc, img in programs %}
-        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {# Program image: real upload or branded placeholder (never blank). #}
-          {% if img %}<img src="{{ img }}" alt="{{ title }}" loading="lazy" class="h-36 w-full object-cover">{% endif %}
-          <div class="p-5">
-            <h3 class="text-base font-bold text-[#1a365d]">{{ title }}</h3>
-            <p class="mt-1 text-xs font-semibold uppercase tracking-wide text-[#2E663F]">{{ duration }}</p>
-            <p class="mt-2 text-sm text-[#333333]">{{ desc }}</p>
-            <button type="button" class="apply-cta mt-4 w-full rounded-xl bg-[#ffc107] px-4 py-2.5 font-bold text-[#1a365d] transition hover:brightness-95"
-                    data-program="{{ prog }}" data-spec="{{ spec }}">
-              Apply Now
-            </button>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# ============================ Why Choose Us ============================ #}
-<section class="bg-[#f8f9fa] px-4 py-10">
-  <div class="mx-auto max-w-md">
-    <h2 class="text-center text-xl font-bold text-[#1a365d]">Why Choose MC College</h2>
-    <div class="mt-5 grid gap-4">
-      {% set reasons = [
-        ("Affordable Fees", "Kept low so cost is never the reason you can't study.", c.why_1_img),
-        ("Mother &amp; Child Foundation Support", "Financial support helps deserving students continue their education.", c.why_2_img),
-        ("HEC-Recognized Degree", "Degrees awarded under JSMU — recognised and accepted.", c.why_3_img),
-        ("Experienced Faculty &amp; Facilities", "Learn from practising professionals in equipped labs.", c.why_4_img)
-      ] %}
-      {% for title, desc, img in reasons %}
-        <div class="flex gap-3 rounded-xl bg-white p-4 shadow-sm">
-          {# Icon/photo: real upload or branded placeholder (never blank). #}
-          {% if img %}
-            <img src="{{ img }}" alt="" loading="lazy" class="mt-0.5 h-8 w-8 flex-none rounded-full object-cover">
-          {% else %}
-            <span class="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#1a365d] text-sm font-bold text-white">✓</span>
-          {% endif %}
-          <div>
-            <h3 class="text-sm font-bold text-[#1a365d]">{{ title | safe }}</h3>
-            <p class="mt-0.5 text-sm text-[#333333]">{{ desc | safe }}</p>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# ============================ Gallery ============================ #}
-{# Rendered only when at least one item is uploaded (addendum §3/§4
-   hide-when-empty). Reappears automatically once content is added. #}
-{% if show_gallery %}
-<section class="bg-white px-4 py-10">
-  <div class="mx-auto max-w-md">
-    <h2 class="text-center text-xl font-bold text-[#1a365d]">Campus Gallery</h2>
-    <div class="mt-5 grid grid-cols-2 gap-3">
-      {% for item in gallery %}
-        <figure class="overflow-hidden rounded-xl border border-slate-200">
-          {% if item.media_type == 'video' %}
-            <video src="{{ url_for('static', filename=item.file_path) }}"
-                   {% if item.poster_path %}poster="{{ url_for('static', filename=item.poster_path) }}"{% endif %}
-                   controls muted playsinline preload="none" class="h-32 w-full bg-black object-cover"></video>
-          {% else %}
-            <img src="{{ url_for('static', filename=item.file_path) }}"
-                 alt="{{ item.caption or 'MC College campus' }}" loading="lazy" class="h-32 w-full object-cover">
-          {% endif %}
-          {% if item.caption %}<figcaption class="px-2 py-1 text-xs text-[#333333]">{{ item.caption }}</figcaption>{% endif %}
-        </figure>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{# ============================ FAQ ============================ #}
-<section class="bg-white px-4 py-10">
-  <div class="mx-auto max-w-md">
-    <h2 class="text-center text-xl font-bold text-[#1a365d]">Frequently Asked Questions</h2>
-    <div class="mt-5 space-y-3">
-      {# FAQ items come from the CMS (seeded with defaults, editable, never
-         blank). Hardcoded defaults below are a template-level safety net in
-         case the list is somehow empty. #}
-      {% set default_faqs = [
-        ("Who is eligible to apply?", "For DPT and BSMT you generally need Intermediate (Pre-Medical preferred). Submit your marks in the form and our team will confirm your eligibility."),
-        ("How affordable is it really?", "Fees are kept low, and eligible students can receive support through the Mother & Child Foundation. Our team will walk you through the exact fee structure."),
-        ("Is the degree HEC recognized?", "Yes. Programs are offered under affiliation with Jinnah Sindh Medical University (JSMU); you can verify this on JSMU's official site linked above."),
-        ("How long are the programs?", "DPT is 5 years. BSMT (both specializations) is 4 years."),
-        ("Is financial support available?", "Yes — support through the Mother & Child Foundation is available for deserving students. Ask our team about how to qualify.")
-      ] %}
-      {% if faqs %}
-        {% for item in faqs %}
-          <details class="group rounded-xl border border-slate-200 bg-white p-4">
-            <summary class="flex cursor-pointer list-none items-center justify-between font-semibold text-[#1a365d]">
-              <span>{{ item.question }}</span>
-              <span class="ml-2 text-[#ffc107] transition group-open:rotate-45">+</span>
-            </summary>
-            <p class="mt-2 whitespace-pre-line text-sm text-[#333333]">{{ item.answer }}</p>
-          </details>
-        {% endfor %}
-      {% else %}
-        {% for q, a in default_faqs %}
-          <details class="group rounded-xl border border-slate-200 bg-white p-4">
-            <summary class="flex cursor-pointer list-none items-center justify-between font-semibold text-[#1a365d]">
-              <span>{{ q }}</span>
-              <span class="ml-2 text-[#ffc107] transition group-open:rotate-45">+</span>
-            </summary>
-            <p class="mt-2 text-sm text-[#333333]">{{ a }}</p>
-          </details>
-        {% endfor %}
-      {% endif %}
-    </div>
-  </div>
-</section>
-
-{# ============================ D. Footer ============================ #}
-<footer class="bg-[#1a365d] px-4 py-10 text-white">
-  <div class="mx-auto max-w-md text-center">
-    {# Logos sit on a white panel — never directly on navy. #}
-    <div class="rounded-2xl bg-white p-4">
-      {{ logo_pair(height="h-10") }}
-    </div>
-    <p class="mt-4 text-sm text-slate-200">
-      MC College — Affiliated with Jinnah Sindh Medical University and Sindh Medical Faculty.
-    </p>
-
-    <dl class="mt-6 space-y-2 text-sm text-slate-200">
-      <div><a href="tel:+922136684658" class="hover:text-white">021-36684658</a></div>
-      <div><a href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener" class="hover:text-white">WhatsApp: +92 331 2004658</a></div>
-      <div><a href="mailto:admission@mccollege.edu.pk" class="hover:text-white">admission@mccollege.edu.pk</a></div>
-      {# Address as plain text — no map embed/link, per the confirmed decision to keep the page fast and link-free. #}
-      <div class="not-italic">
-        Main Campus: C 177/2, Rameez Raja Road, Block A, North Nazimabad off KDA Chowrangi near Rose Garden, Karachi
-      </div>
-    </dl>
-
-    <p class="mt-6 text-xs text-slate-400">
-      This is an official admissions portal for MC College of Medical &amp; Allied Health Sciences,
-      affiliated with Jinnah Sindh Medical University. Run separately from our main website to
-      process admissions inquiries faster.
-    </p>
-    <p class="mt-2 text-xs text-slate-500">&copy; {{ current_year }} MC College of Medical &amp; Allied Health Sciences.</p>
-    <p class="mt-3 text-xs">
-      <a href="{{ url_for('public.privacy') }}" class="text-slate-300 underline hover:text-white">Privacy Policy</a>
-    </p>
   </div>
 </footer>
-
-</main>
-
-{# ============================ Sticky bottom bars ============================ #}
-{# Continue Application — appears only after Step 1 answered and scrolled past. #}
-<button id="continueBar" type="button"
-        class="fixed inset-x-0 bottom-0 z-40 hidden bg-[#ffc107] px-4 py-3 text-center font-bold text-[#1a365d] shadow-[0_-2px_8px_rgba(0,0,0,0.15)]">
-  Continue Application — <span id="continueStep">Step 2 of 3</span>
-</button>
-
-{# WhatsApp bubble (addendum 3 §6 — overlap fix). The form card spans almost the
-   full mobile width, so a fixed bottom-right bubble unavoidably crossed the
-   card's corner while the form was on screen. It is now hidden whenever the
-   form is in view and revealed once the user scrolls past it (same observer as
-   the Continue bar), so it never overlaps the card or active fields on any
-   screen size. It sits at bottom-24 to clear the Continue bar when both show. #}
-<a id="whatsappBubble" href="{{ WHATSAPP_URL }}" target="_blank" rel="noopener"
-   aria-label="Chat with us on WhatsApp"
-   class="fixed bottom-24 right-4 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25d366] shadow-lg transition hover:scale-105">
-  <svg class="h-8 w-8 fill-white" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/>
-  </svg>
-</a>
-
 {% endblock %}
 
 {% block scripts %}
-<style>
-  .form-input {
-    width: 100%;
-    border-radius: 0.75rem;
-    border: 1px solid #cbd5e1;
-    padding: 0.625rem 0.875rem;
-    font-size: 0.95rem;
-    color: #333333;
-    background: #fff;
-  }
-  .form-input:focus { outline: none; border-color: #1a365d; box-shadow: 0 0 0 2px rgba(26,54,93,.15); }
-  .form-input.field-invalid { border-color: #dc2626; }
-  .form-input.field-invalid:focus { box-shadow: 0 0 0 2px rgba(220,38,38,.15); }
-  .program-card.selected, .spec-card.selected {
-    border-color: #1a365d; background: #1a365d; color: #fff;
-  }
-</style>
 <script>
 (function () {
+  // ---- 1. Hero Quick Lead Form handler ----
+  const quickForm = document.getElementById('quick-lead-form');
+  if (quickForm) {
+    quickForm.addEventListener('submit', function (e) {
+      const fullNameInput = document.getElementById('quick-fullname-input');
+      const fullName = (fullNameInput ? fullNameInput.value : '').trim();
+      const parts = fullName.split(/\s+/);
+      const firstName = parts[0] || 'Applicant';
+      const lastName = parts.slice(1).join(' ') || '.';
+      document.getElementById('quick-first-name').value = firstName;
+      document.getElementById('quick-last-name').value = lastName;
+    });
+  }
+
+  // ---- 2. Bento Grid 3-Step Wizard Form ----
   const form = document.getElementById('admissionForm');
+  if (!form) return;
+
   const steps = {
     1: form.querySelector('[data-step="1"]'),
     2: form.querySelector('[data-step="2"]'),
     3: form.querySelector('[data-step="3"]'),
   };
+  const stepBadge = document.getElementById('stepBadge');
   const stepLabel = document.getElementById('stepLabel');
-  const progressBar = document.getElementById('progressBar');
+  const stepTitle = document.getElementById('stepTitle');
+  const progressBar = document.getElementById('form-progress-bar');
   const bsmtBranch = document.getElementById('bsmtBranch');
   const courseInput = form.querySelector('#course');
   const specInput = form.querySelector('#specialization');
   const continueBar = document.getElementById('continueBar');
   const whatsappBubble = document.getElementById('whatsappBubble');
   const continueStep = document.getElementById('continueStep');
-  const applySection = document.getElementById('apply');
+  const applicationBento = document.getElementById('application-bento');
 
   let current = 1;
-  let started = false; // Step 1 answered at least once
+  let started = false;
+
+  const titles = {
+    1: "Which program are you applying for?",
+    2: "Academic Qualifications",
+    3: "Candidate Identity & Contact Verification",
+  };
 
   function showStep(n) {
     current = n;
-    Object.keys(steps).forEach(k => steps[k].classList.toggle('hidden', Number(k) !== n));
-    stepLabel.textContent = 'Step ' + n + ' of 3';
-    progressBar.style.width = (n / 3 * 100) + '%';
-    continueStep.textContent = 'Step ' + n + ' of 3';
+    Object.keys(steps).forEach(k => {
+      if (steps[k]) {
+        steps[k].classList.toggle('hidden', Number(k) !== n);
+      }
+    });
+    if (stepBadge) stepBadge.textContent = n;
+    if (stepLabel) stepLabel.textContent = 'Step ' + n + ' of 3';
+    if (stepTitle) stepTitle.textContent = titles[n] || '';
+    if (progressBar) progressBar.style.width = (n / 3 * 100) + '%';
+    if (continueStep) continueStep.textContent = 'Step ' + n + ' of 3';
   }
 
-  // If the server re-rendered with errors, jump the user to the step that has them.
+  // Check if form re-rendered with validation errors
   function initialStep() {
     if (form.querySelector('[data-step="3"] .text-red-600')) return 3;
-    if (courseInput.value) { started = true; return 1; }
+    if (courseInput && courseInput.value) {
+      started = true;
+      return 1;
+    }
     return 1;
   }
 
-  // ---- Step 1: program tap-cards ----
+  // Step 1: Program buttons
   form.querySelectorAll('.program-card').forEach(card => {
     card.addEventListener('click', () => {
       form.querySelectorAll('.program-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       const program = card.dataset.program;
-      courseInput.value = program;
+      if (courseInput) courseInput.value = program;
       started = true;
       if (program === 'BSMT') {
-        bsmtBranch.classList.remove('hidden');
-        // wait for specialization before advancing
+        if (bsmtBranch) {
+          bsmtBranch.classList.remove('hidden');
+          bsmtBranch.classList.add('flex');
+        }
       } else {
-        specInput.value = '';
-        bsmtBranch.classList.add('hidden');
+        if (specInput) specInput.value = '';
+        if (bsmtBranch) {
+          bsmtBranch.classList.add('hidden');
+          bsmtBranch.classList.remove('flex');
+        }
         form.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
         showStep(2);
       }
     });
   });
 
-  // ---- Step 1 sub-step: BSMT specialization ----
+  // Step 1 sub-step: BSMT specialization buttons
   form.querySelectorAll('.spec-card').forEach(card => {
     card.addEventListener('click', () => {
       form.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      specInput.value = card.dataset.spec;
+      if (specInput) specInput.value = card.dataset.spec;
       showStep(2);
     });
   });
 
-  // ---- Inline field validation ----
-  // Shows a message directly under an empty required field (never a popup) and
-  // blocks advancing/submitting until it's filled. Marked via data-required.
+  // Inline field validation
   function fieldError(input, message) {
     clearError(input);
     input.classList.add('field-invalid');
@@ -624,15 +1301,16 @@
     msg.textContent = message || 'This field is required';
     input.insertAdjacentElement('afterend', msg);
   }
+
   function clearError(input) {
     input.classList.remove('field-invalid');
     input.removeAttribute('aria-invalid');
     const next = input.nextElementSibling;
     if (next && next.classList.contains('field-error')) next.remove();
   }
-  // Validate every required field within a given step element. Returns the
-  // first invalid input (for focus), or null if the step is valid.
+
   function validateStep(stepEl) {
+    if (!stepEl) return null;
     let firstInvalid = null;
     stepEl.querySelectorAll('[data-required]').forEach(input => {
       if (!input.value.trim()) {
@@ -644,17 +1322,22 @@
     });
     return firstInvalid;
   }
-  // Clear a field's error as soon as the user starts fixing it.
+
   form.querySelectorAll('[data-required]').forEach(input => {
-    input.addEventListener('input', () => { if (input.value.trim()) clearError(input); });
+    input.addEventListener('input', () => {
+      if (input.value.trim()) clearError(input);
+    });
   });
 
-  // ---- Back / Continue ----
-  // Step 2 has no required fields, so Continue always advances to Step 3.
-  form.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => showStep(3)));
-  form.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showStep(current - 1 < 1 ? 1 : current - 1)));
+  // Step navigation buttons
+  form.querySelectorAll('[data-next]').forEach(b => {
+    b.addEventListener('click', () => showStep(3));
+  });
+  form.querySelectorAll('[data-back]').forEach(b => {
+    b.addEventListener('click', () => showStep(Math.max(1, current - 1)));
+  });
 
-  // ---- Submit: block if Step 3 required fields are empty ----
+  // Submit handler: validates Step 3
   form.addEventListener('submit', (e) => {
     const invalid = validateStep(steps[3]);
     if (invalid) {
@@ -664,58 +1347,70 @@
     }
   });
 
-  // ---- Program cards lower on the page pre-select + jump to form ----
+  // Program cards in catalog jump to form
   document.querySelectorAll('.apply-cta').forEach(btn => {
     btn.addEventListener('click', () => {
       const program = btn.dataset.program;
       const spec = btn.dataset.spec;
-      form.querySelectorAll('.program-card').forEach(c =>
-        c.classList.toggle('selected', c.dataset.program === program));
-      courseInput.value = program;
+      form.querySelectorAll('.program-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.program === program);
+      });
+      if (courseInput) courseInput.value = program;
       started = true;
       if (program === 'BSMT' && spec) {
-        specInput.value = spec;
-        bsmtBranch.classList.remove('hidden');
-        form.querySelectorAll('.spec-card').forEach(c =>
-          c.classList.toggle('selected', c.dataset.spec === spec));
+        if (specInput) specInput.value = spec;
+        if (bsmtBranch) {
+          bsmtBranch.classList.remove('hidden');
+          bsmtBranch.classList.add('flex');
+        }
+        form.querySelectorAll('.spec-card').forEach(c => {
+          c.classList.toggle('selected', c.dataset.spec === spec);
+        });
         showStep(2);
       } else if (program === 'BSMT') {
-        bsmtBranch.classList.remove('hidden');
+        if (bsmtBranch) {
+          bsmtBranch.classList.remove('hidden');
+          bsmtBranch.classList.add('flex');
+        }
         showStep(1);
       } else {
-        specInput.value = '';
+        if (specInput) specInput.value = '';
         showStep(2);
       }
-      applySection.scrollIntoView({ behavior: 'smooth' });
+      if (applicationBento) {
+        applicationBento.scrollIntoView({ behavior: 'smooth' });
+      }
     });
   });
 
-  // ---- Sticky bottom UI: show only when the form (card) is scrolled out of view ----
-  // The WhatsApp bubble follows the same rule as the Continue bar so it can
-  // never overlap the form card or its active fields (addendum 3 §6). The
-  // Continue bar additionally waits until Step 1 has been answered.
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const formVisible = entry.isIntersecting;
-      continueBar.classList.toggle('hidden', !(started && !formVisible));
-      // Bubble uses `flex` when shown, so toggle both classes together.
-      whatsappBubble.classList.toggle('hidden', formVisible);
-      whatsappBubble.classList.toggle('flex', !formVisible);
-    });
-  }, { threshold: 0 });
-  observer.observe(applySection);
+  // Sticky bottom action controls
+  if ('IntersectionObserver' in window && applicationBento) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const formVisible = entry.isIntersecting;
+        if (continueBar) {
+          continueBar.classList.toggle('hidden', !(started && !formVisible));
+        }
+        if (whatsappBubble) {
+          whatsappBubble.classList.toggle('hidden', formVisible);
+          whatsappBubble.classList.toggle('flex', !formVisible);
+        }
+      });
+    }, { threshold: 0 });
+    observer.observe(applicationBento);
+  }
 
-  continueBar.addEventListener('click', () => {
-    applySection.scrollIntoView({ behavior: 'smooth' });
-  });
+  if (continueBar && applicationBento) {
+    continueBar.addEventListener('click', () => {
+      applicationBento.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
 
   showStep(initialStep());
 })();
 </script>
 
-{# Lazy-load self-hosted videos: the form is always top loading priority, so a
-   video's real source (data-src) is only attached when it scrolls near view.
-   Muted autoplay with captions once loaded, matching the spec. #}
+{# Lazy-load self-hosted videos when in view #}
 <script>
 (function () {
   const videos = document.querySelectorAll('video[data-lazy-video]');
@@ -731,7 +1426,6 @@
       video.appendChild(source);
     }
     video.load();
-    // Attempt muted autoplay once in view; ignore rejection (e.g. data saver).
     video.play().catch(function () {});
   };
 
